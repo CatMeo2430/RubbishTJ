@@ -48,7 +48,7 @@ echo Watching run %RUN_ID% ...
 gh run watch %RUN_ID% --exit-status
 if errorlevel 1 (
     echo.
-    echo CI failed. Build log:
+    echo === CI failed. Failed step logs ===
     gh run view %RUN_ID% --log-failed
     exit /b 1
 )

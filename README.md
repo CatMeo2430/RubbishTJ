@@ -51,9 +51,11 @@ build.bat "本次更改内容摘要"
 2. `git commit -m "本次更改内容摘要"`
 3. `git push -u origin HEAD`（触发 GitHub Actions）
 4. 按本次 commit SHA 查找对应 CI run（`gh run list --workflow ci.yml --commit <sha>`）
-5. `gh run watch <run-id> --exit-status` 等待 CI 完成
-6. 若失败，打印 `gh run view <run-id> --log-failed` 日志
+5. `gh run watch <run-id> --exit-status` 等待 CI 完成（仅显示进度，不输出逐步详细日志）
+6. 若失败，执行 `gh run view <run-id> --log-failed` 打印失败步骤日志
 7. 若成功，执行 `gh run download <run-id> --name TaiJi-singlefile-x64 --dir .artifacts` 并解压到 `publish\`
+
+> `gh run watch` 本身不流式输出完整构建日志。失败时用已定位的 `run-id` 调用 `--log-failed`（官方无 `--last-failed` 参数，用 commit 对应的 run-id 更准确）。
 
 示例：
 
