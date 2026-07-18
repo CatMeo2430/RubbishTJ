@@ -29,13 +29,16 @@ namespace Taiji.Engine.Utils
 
             try
             {
-                return RunInHiddenHost(element, host =>
+                string renderError = null;
+                var ok = RunInHiddenHost(element, host =>
                 {
                     var dipWidth = Math.Max(1, host.ActualWidth > 0 ? host.ActualWidth : host.DesiredSize.Width);
                     var dipHeight = Math.Max(1, host.ActualHeight > 0 ? host.ActualHeight : host.DesiredSize.Height);
-                    RenderToPng(host, dipWidth, dipHeight, path, out error);
-                    return string.IsNullOrEmpty(error);
+                    RenderToPng(host, dipWidth, dipHeight, path, out renderError);
+                    return string.IsNullOrEmpty(renderError);
                 });
+                error = renderError;
+                return ok;
             }
             catch (Exception ex)
             {
