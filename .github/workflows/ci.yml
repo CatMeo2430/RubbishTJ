@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup NuGet
+        uses: nuget/setup-nuget@v2
+
+      - name: NuGet restore
+        run: nuget restore TaiJi.sln
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Build libraries (Release x64)
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path publish | Out-Null
+          msbuild Core/Core.csproj /t:Rebuild /p:Configuration=Release /p:Platform=x64
+          msbuild Engine/Engine.csproj /t:Rebuild /p:Configuration=Release /p:Platform=x64
+
+      - name: Build single-file executables (Release x64 + Costura)
+        shell: pwsh
+        run: |
+          msbuild GUI/GUI.csproj /t:Rebuild /p:Configuration=Release /p:Platform=x64
+          msbuild Proxy/Proxy.csproj /t:Rebuild /p:Configuration=Release /p:Platform=x64
+
+      - name: Verify artifacts
+        shell: pwsh
+        run: |
+          foreach ($exe in @('Taiji.GUI.exe', 'Taiji.Proxy.exe')) {
+            $path = "publish/$exe"
+            if (-not (Test-Path $path)) { throw "Missing $path" }
+            Write-Host "OK $path ($((Get-Item $path).Length) bytes)"
+          }
+          $dll = Get-ChildItem publish -Filter *.dll -ErrorAction SilentlyContinue
+          if ($dll) {
+            throw "Single-file build left DLLs in publish: $($dll.Name -join ', ')"
+          }
+          $config = Get-ChildItem publish -Filter *.config -ErrorAction SilentlyContinue
+          if ($config) {
+            throw "Single-file build left config files in publish: $($config.Name -join ', ')"
+          }
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: TaiJi-singlefile-x64
+          path: |
+            publish/Taiji.GUI.exe
+            publish/Taiji.Proxy.exe
+          if-no-files-found: error

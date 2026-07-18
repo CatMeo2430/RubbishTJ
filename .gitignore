@@ -1,0 +1,23 @@
+# 旧项目参考（不纳入版本控制）
+OLD/
+
+# NuGet 与构建产物
+packages/
+publish/
+
+# RaTeX FFI 源码树（本地 clone / submodule，不纳入本仓库）
+RaTeX-FFI/
+
+# Fork 改动说明（本地备忘）
+RaTexFFI.md
+
+# MSBuild / Visual Studio
+.vs/
+**/obj/
+**/bin/
+*.user
+*.suo
+*.cache
+
+# CI 产物下载临时目录
+.artifacts/

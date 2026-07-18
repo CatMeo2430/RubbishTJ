@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Release</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">x64</Platform>
+    <ProjectGuid>{C3D4E5F6-A7B8-9012-CDEF-123456789ABC}</ProjectGuid>
+    <OutputType>Exe</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>Taiji.Proxy</RootNamespace>
+    <AssemblyName>Taiji.Proxy</AssemblyName>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <LangVersion>7.3</LangVersion>
+    <FileAlignment>512</FileAlignment>
+    <Deterministic>true</Deterministic>
+    <FodyVersion>4.2.1</FodyVersion>
+    <CosturaFodyVersion>3.3.3</CosturaFodyVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x64' ">
+    <PlatformTarget>x64</PlatformTarget>
+    <DebugSymbols>false</DebugSymbols>
+    <DebugType>none</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>..\publish\</OutputPath>
+    <IntermediateOutputPath>obj\x64\Release\</IntermediateOutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.13.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Configuration" />
+    <Reference Include="System.Core" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Core\Core.csproj">
+      <Project>{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}</Project>
+      <Name>Core</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="ApiModels.cs" />
+    <Compile Include="Program.cs" />
+    <Compile Include="ProxyConfig.cs" />
+    <Compile Include="ProxyLog.cs" />
+    <Compile Include="ProxyServer.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="App.config" />
+    <None Include="FodyWeavers.xml" />
+    <None Include="packages.config" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Import Project="..\packages\Costura.Fody.$(CosturaFodyVersion)\build\Costura.Fody.props"
+          Condition="Exists('..\packages\Costura.Fody.$(CosturaFodyVersion)\build\Costura.Fody.props')" />
+  <Import Project="..\packages\Fody.$(FodyVersion)\build\Fody.targets"
+          Condition="Exists('..\packages\Fody.$(FodyVersion)\build\Fody.targets')" />
+  <Target Name="CosturaPublishCleanup" AfterTargets="Build">
+    <PropertyGroup>
+      <PublishDir>$(MSBuildThisFileDirectory)..\publish\</PublishDir>
+    </PropertyGroup>
+    <ItemGroup>
+      <CosturaPublishLeftover Include="$(PublishDir)*.dll" />
+      <CosturaPublishLeftover Include="$(PublishDir)*.config" />
+      <CosturaPublishLeftover Include="$(PublishDir)*.pdb" />
+      <CosturaPublishLeftover Include="$(PublishDir)*.xml" />
+    </ItemGroup>
+    <Delete Files="@(CosturaPublishLeftover)" ContinueOnError="true" />
+  </Target>
+</Project>

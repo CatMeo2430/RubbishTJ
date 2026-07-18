@@ -1,0 +1,55 @@
+<Window x:Class="Taiji.GUI.LoginWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="登录 TaiJi"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        SizeToContent="WidthAndHeight"
+        Background="{StaticResource BrushBg}"
+        Foreground="{StaticResource BrushFg}"
+        FontFamily="{StaticResource UiFont}"
+        ShowInTaskbar="False">
+  <Border Margin="24" Padding="0" MinWidth="360">
+    <StackPanel>
+      <TextBlock Text="登录 TaiJi"
+                 FontSize="18"
+                 FontWeight="SemiBold"
+                 Foreground="{StaticResource BrushBlue}"
+                 Margin="0,0,0,18" />
+
+      <TextBlock Text="用户名" Margin="0,0,0,6" Foreground="{StaticResource BrushFgDim}" />
+      <TextBox x:Name="AccountBox" />
+
+      <TextBlock Text="密码" Margin="0,14,0,6" Foreground="{StaticResource BrushFgDim}" />
+      <PasswordBox x:Name="PasswordBox"
+                   Background="{StaticResource BrushBgDeep}"
+                   Foreground="{StaticResource BrushFg}"
+                   CaretBrush="{StaticResource BrushBlue}"
+                   BorderBrush="{StaticResource BrushGutter}"
+                   BorderThickness="1"
+                   Padding="10,8"
+                   FontFamily="{StaticResource UiFont}"
+                   FontSize="13" />
+
+      <CheckBox x:Name="RememberBox"
+                Content="自动登录"
+                Margin="0,14,0,0"
+                Foreground="{StaticResource BrushFg}" />
+
+      <StackPanel Orientation="Horizontal"
+                  HorizontalAlignment="Right"
+                  Margin="0,22,0,0">
+        <Button Content="取消"
+                Width="88"
+                Margin="0,0,10,0"
+                IsCancel="True"
+                Click="Cancel_OnClick" />
+        <Button Content="登录"
+                Width="88"
+                Style="{StaticResource OdButtonPrimary}"
+                IsDefault="True"
+                Click="Login_OnClick" />
+      </StackPanel>
+    </StackPanel>
+  </Border>
+</Window>

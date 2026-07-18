@@ -1,0 +1,241 @@
+<Window x:Class="Taiji.GUI.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+        Title="Taiji"
+        Height="780" Width="1180"
+        MinHeight="520" MinWidth="800"
+        WindowStartupLocation="CenterScreen"
+        WindowStyle="None"
+        ResizeMode="NoResize"
+        Background="{StaticResource BrushBg}"
+        Foreground="{StaticResource BrushFg}"
+        FontFamily="{StaticResource UiFont}"
+        FontSize="13">
+
+  <!-- ResizeBorder=0：边缘交给悬浮菜单，不出现调整大小光标 -->
+  <shell:WindowChrome.WindowChrome>
+    <shell:WindowChrome CaptionHeight="0"
+                        ResizeBorderThickness="0"
+                        GlassFrameThickness="0"
+                        CornerRadius="0"
+                        UseAeroCaptionButtons="False" />
+  </shell:WindowChrome.WindowChrome>
+
+  <Window.Resources>
+    <Style x:Key="WinChromeBtn" TargetType="Button" BasedOn="{StaticResource OdButtonFlat}">
+      <Setter Property="Width" Value="46" />
+      <Setter Property="Height" Value="32" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="shell:WindowChrome.IsHitTestVisibleInChrome" Value="True" />
+    </Style>
+    <!-- 模型下拉：三列对齐表格式 -->
+    <DataTemplate x:Key="ModelRowTemplate">
+      <Grid Margin="0" MinWidth="420">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*" MinWidth="160" />
+          <ColumnDefinition Width="88" />
+          <ColumnDefinition Width="96" />
+        </Grid.ColumnDefinitions>
+        <TextBlock Grid.Column="0" Text="{Binding NameText}"
+                   Foreground="White" FontSize="12.5"
+                   TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+        <TextBlock Grid.Column="1" Text="{Binding PointsText}"
+                   Foreground="White" FontSize="12.5"
+                   HorizontalAlignment="Right" Margin="8,0,12,0" VerticalAlignment="Center" />
+        <TextBlock Grid.Column="2" Text="{Binding ModeText}"
+                   Foreground="White" FontSize="12.5"
+                   HorizontalAlignment="Left" VerticalAlignment="Center" />
+      </Grid>
+    </DataTemplate>
+  </Window.Resources>
+
+  <Grid x:Name="RootGrid" Background="{StaticResource BrushBg}">
+    <RichTextBox x:Name="ChatBox"
+                 IsReadOnly="True"
+                 IsDocumentEnabled="True"
+                 IsUndoEnabled="False"
+                 VerticalScrollBarVisibility="Hidden"
+                 HorizontalScrollBarVisibility="Disabled"
+                 BorderThickness="0"
+                 Background="{StaticResource BrushBg}"
+                 Foreground="{StaticResource BrushFg}"
+                 CaretBrush="{StaticResource BrushBlue}"
+                 Padding="12,10,12,16"
+                 FontSize="13.5"
+                 FontFamily="{StaticResource UiFont}">
+      <FlowDocument Background="{StaticResource BrushBg}"
+                    Foreground="{StaticResource BrushFg}"
+                    PagePadding="0"
+                    LineHeight="22" />
+    </RichTextBox>
+
+    <!-- 热区几何在代码里按边贴齐并避开四角 -->
+    <Border x:Name="HotTop" Height="12" VerticalAlignment="Top"
+            Background="#01FFFFFF"
+            MouseEnter="HotTop_OnMouseEnter" Panel.ZIndex="40" />
+    <Border x:Name="HotBottom" Height="12" VerticalAlignment="Bottom"
+            Background="#01FFFFFF"
+            MouseEnter="HotBottom_OnMouseEnter" Panel.ZIndex="40" />
+    <Border x:Name="HotLeft" Width="12" HorizontalAlignment="Left"
+            Background="#01FFFFFF"
+            MouseEnter="HotLeft_OnMouseEnter" Panel.ZIndex="35" />
+    <Border x:Name="HotRight" Width="12" HorizontalAlignment="Right"
+            Background="#01FFFFFF"
+            MouseEnter="HotRight_OnMouseEnter" Panel.ZIndex="35" />
+
+    <!-- 顶栏 -->
+    <Border x:Name="PanelTop" Height="78" VerticalAlignment="Top"
+            Background="{StaticResource BrushPanel}"
+            BorderBrush="{StaticResource BrushDivider}"
+            BorderThickness="0,0,0,1" Panel.ZIndex="30"
+            IsHitTestVisible="False"
+            MouseEnter="Panel_OnMouseEnter" MouseLeave="PanelTop_OnMouseLeave">
+      <Border.RenderTransform>
+        <TranslateTransform x:Name="PanelTopTx" Y="-86" />
+      </Border.RenderTransform>
+      <DockPanel Margin="14,8">
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top" Margin="8,0,0,0">
+          <Button Style="{StaticResource WinChromeBtn}" Content="─" Click="BtnMinimize_OnClick" ToolTip="最小化" />
+          <Button x:Name="BtnMaximize" Style="{StaticResource WinChromeBtn}" Content="☐" Click="BtnMaximize_OnClick" ToolTip="还原/最大化" />
+          <Button Style="{StaticResource WinChromeBtn}" Content="✕" Click="BtnClose_OnClick" ToolTip="关闭"
+                  Foreground="{StaticResource BrushRed}" />
+        </StackPanel>
+
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
+          <TextBlock Text="Taiji" FontSize="20" FontWeight="Bold" VerticalAlignment="Center"
+                     Foreground="{StaticResource BrushBlue}"
+                     MouseLeftButtonDown="Title_OnMouseLeftButtonDown" Cursor="SizeAll" />
+          <Button x:Name="BtnNewSession" Content="新对话" Margin="16,0,0,0" Height="34" Padding="14,0"
+                  Style="{StaticResource OdButtonPrimary}"
+                  Click="BtnNewSession_OnClick" IsEnabled="False" />
+          <Button x:Name="BtnRefreshSessions" Content="刷新" Margin="8,0,0,0" Height="34" Padding="12,0"
+                  Style="{StaticResource OdButton}"
+                  Click="BtnRefreshSessions_OnClick" IsEnabled="False" />
+          <ComboBox x:Name="ProviderBox" Width="120" Margin="18,0,8,0"
+                    ToolTip="厂商"
+                    SelectionChanged="ProviderBox_OnSelectionChanged" />
+          <ComboBox x:Name="ModelBox" Width="460" MinWidth="360"
+                    ToolTip="模型"
+                    ItemTemplate="{StaticResource ModelRowTemplate}" />
+        </StackPanel>
+      </DockPanel>
+    </Border>
+
+    <!-- 底栏 -->
+    <Border x:Name="PanelBottom" Height="168" VerticalAlignment="Bottom"
+            Background="{StaticResource BrushPanel}"
+            BorderBrush="{StaticResource BrushDivider}"
+            BorderThickness="0,1,0,0" Panel.ZIndex="30"
+            IsHitTestVisible="False"
+            MouseEnter="Panel_OnMouseEnter" MouseLeave="PanelBottom_OnMouseLeave">
+      <Border.RenderTransform>
+        <TranslateTransform x:Name="PanelBottomTx" Y="180" />
+      </Border.RenderTransform>
+      <Grid Margin="16,12">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="112" />
+        </Grid.ColumnDefinitions>
+        <DockPanel Grid.Column="0">
+          <TextBlock x:Name="AttachText" DockPanel.Dock="Bottom" Text="未附加图片"
+                     Foreground="{StaticResource BrushWhite}"
+                     Margin="2,6,0,0" FontSize="11" />
+          <TextBox x:Name="InputBox"
+                   AcceptsReturn="True"
+                   TextWrapping="Wrap"
+                   VerticalScrollBarVisibility="Auto"
+                   MinHeight="96"
+                   ToolTip="Ctrl+Enter 发送"
+                   PreviewKeyDown="InputBox_OnPreviewKeyDown" />
+        </DockPanel>
+        <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Stretch">
+          <Button x:Name="BtnSend" Content="发送" Height="36" Margin="0,0,0,8"
+                  Style="{StaticResource OdButtonPrimary}"
+                  Click="BtnSend_OnClick" IsEnabled="False" />
+          <Button x:Name="BtnImage" Content="图片" Height="32" Margin="0,0,0,8"
+                  Click="BtnImage_OnClick" IsEnabled="False" />
+          <Button x:Name="BtnClearImg" Content="清图" Height="32" Margin="0,0,0,8"
+                  Style="{StaticResource OdButtonFlat}"
+                  Click="BtnClearImg_OnClick" IsEnabled="False" />
+          <Button x:Name="BtnStop" Content="停止" Height="32"
+                  Style="{StaticResource OdButtonDanger}"
+                  Click="BtnStop_OnClick" IsEnabled="False" />
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <!-- 左栏：大纲 -->
+    <Border x:Name="PanelLeft" Width="268" HorizontalAlignment="Left"
+            Background="{StaticResource BrushPanel}"
+            BorderBrush="{StaticResource BrushDivider}"
+            BorderThickness="0,0,1,0" Panel.ZIndex="30"
+            MouseEnter="Panel_OnMouseEnter" MouseLeave="PanelLeft_OnMouseLeave">
+      <Border.RenderTransform>
+        <TranslateTransform x:Name="PanelLeftTx" X="-280" />
+      </Border.RenderTransform>
+      <DockPanel Margin="12,16,10,16">
+        <TextBlock DockPanel.Dock="Top" Text="对话大纲" FontWeight="SemiBold" FontSize="15"
+                   Margin="4,0,0,12" Foreground="{StaticResource BrushCyan}" />
+        <ListBox x:Name="OutlineList"
+                 ItemContainerStyle="{StaticResource OdOutlineItem}"
+                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                 ScrollViewer.VerticalScrollBarVisibility="Auto"
+                 SelectionChanged="OutlineList_OnSelectionChanged">
+          <ListBox.ItemTemplate>
+            <DataTemplate>
+              <StackPanel>
+                <TextBlock Text="{Binding RoleLabel}" FontSize="11" FontWeight="SemiBold"
+                           Foreground="{Binding Accent}" Margin="0,0,0,2" />
+                <TextBlock Text="{Binding Preview}" TextWrapping="Wrap" MaxHeight="40"
+                           TextTrimming="CharacterEllipsis" FontSize="12.5"
+                           Foreground="{StaticResource BrushWhite}" />
+              </StackPanel>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </DockPanel>
+    </Border>
+
+    <!-- 右栏：历史 -->
+    <Border x:Name="PanelRight" Width="292" HorizontalAlignment="Right"
+            Background="{StaticResource BrushPanel}"
+            BorderBrush="{StaticResource BrushDivider}"
+            BorderThickness="1,0,0,0" Panel.ZIndex="30"
+            MouseEnter="Panel_OnMouseEnter" MouseLeave="PanelRight_OnMouseLeave">
+      <Border.RenderTransform>
+        <TranslateTransform x:Name="PanelRightTx" X="300" />
+      </Border.RenderTransform>
+      <DockPanel Margin="12,16">
+        <TextBlock DockPanel.Dock="Top" Text="历史对话" FontWeight="SemiBold" FontSize="15"
+                   Margin="4,0,0,12" Foreground="{StaticResource BrushCyan}" />
+        <ListBox x:Name="SessionList"
+                 ItemContainerStyle="{StaticResource OdListItem}"
+                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                 ScrollViewer.VerticalScrollBarVisibility="Auto"
+                 SelectionChanged="SessionList_OnSelectionChanged"
+                 PreviewMouseRightButtonDown="SessionList_OnPreviewMouseRightButtonDown">
+          <ListBox.ContextMenu>
+            <ContextMenu Opened="SessionContextMenu_OnOpened" Closed="SessionContextMenu_OnClosed">
+              <MenuItem Header="改名" Click="MenuRename_OnClick" Style="{StaticResource OdContextMenuItem}" />
+              <MenuItem Header="删除" Click="MenuDelete_OnClick" Style="{StaticResource OdContextMenuItem}" />
+            </ContextMenu>
+          </ListBox.ContextMenu>
+          <ListBox.ItemTemplate>
+            <DataTemplate>
+              <StackPanel>
+                <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"
+                           Foreground="{StaticResource BrushWhite}" />
+                <TextBlock Text="{Binding Model}" FontSize="11" Margin="0,4,0,0"
+                           Foreground="{StaticResource BrushBlue}"
+                           TextTrimming="CharacterEllipsis" />
+                <TextBlock Text="{Binding Created}" FontSize="10" Margin="0,3,0,0"
+                           Foreground="{StaticResource BrushWhite}" />
+              </StackPanel>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </DockPanel>
+    </Border>
+  </Grid>
+</Window>
