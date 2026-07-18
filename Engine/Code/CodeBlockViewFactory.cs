@@ -10,8 +10,23 @@ namespace Taiji.Engine.Code
     /// <summary>用 AvalonEdit 渲染带语法高亮的代码块（可选中、可复制）。</summary>
     public static class CodeBlockViewFactory
     {
-        public static FrameworkElement Create(string code, string language)
+        public static FrameworkElement Create(string code, string language, bool forExport = false)
         {
+            if (forExport)
+            {
+                return new CodeBlockEditor(code, language, forExport: true)
+                {
+                    Background = DraculaTheme.CurrentLineBrush,
+                    BorderBrush = DraculaTheme.SelectionBrush,
+                    BorderThickness = new Thickness(1),
+                    CornerRadius = new CornerRadius(4),
+                    Padding = new Thickness(8, 6, 8, 8),
+                    Margin = new Thickness(0, 4, 0, 8),
+                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                    SnapsToDevicePixels = true
+                };
+            }
+
             return new CodeBlockView(code, language);
         }
 

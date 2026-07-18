@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using ICSharpCode.AvalonEdit;
+using Taiji.Engine.Utils;
 
 namespace Taiji.Engine.Code
 {
@@ -10,19 +11,22 @@ namespace Taiji.Engine.Code
     public sealed class CodeBlockEditor : Border
     {
         private const double MaxDisplayHeight = 420;
-        private const double LineHeight = 17;
+        private const double LineHeight = 18;
         private const double MinEditorHeight = 48;
 
-        public CodeBlockEditor(string code, string language)
+        public CodeBlockEditor(string code, string language, bool forExport = false)
         {
             Code = code ?? "";
             CodeLanguage = language ?? "";
-            Child = Editor = CreateEditor(Code, CodeLanguage);
-            AttachContextMenu();
+            ForExport = forExport;
+            Child = Editor = CreateEditor(Code, CodeLanguage, forExport);
+            if (!forExport)
+                AttachContextMenu();
         }
 
         public string Code { get; private set; }
         public string CodeLanguage { get; private set; }
+        public bool ForExport { get; private set; }
         public TextEditor Editor { get; private set; }
 
         /// <summary>按完整内容布局，用于 PNG 导出（不受聊天区 420px 高度限制）。</summary>
@@ -30,18 +34,20 @@ namespace Taiji.Engine.Code
         {
             var exportWidth = width > 64 ? width : 640;
             var editor = CreateEditor(Code, CodeLanguage, forExport: true);
-            LayoutEditorFullHeight(editor, exportWidth);
+            editor.WordWrap = false;
 
             var shell = new Border
             {
                 Background = Background ?? Theme.DraculaTheme.CurrentLineBrush,
                 Padding = Padding,
                 Child = editor,
-                SnapsToDevicePixels = true
+                SnapsToDevicePixels = true,
+                Width = exportWidth
             };
-            shell.Measure(new Size(exportWidth, double.PositiveInfinity));
-            shell.Arrange(new Rect(0, 0, exportWidth, shell.DesiredSize.Height));
-            shell.UpdateLayout();
+
+            VisualExportHelper.PrepareForExportLayout(shell, exportWidth);
+            ApplyFullDocumentHeight(editor, exportWidth, allowWrap: false);
+            VisualExportHelper.PrepareForExportLayout(shell, exportWidth);
             return shell;
         }
 
@@ -71,7 +77,7 @@ namespace Taiji.Engine.Code
                 IsEnabled = true,
                 Focusable = !forExport,
                 ShowLineNumbers = true,
-                WordWrap = true,
+                WordWrap = !forExport,
                 FontFamily = Theme.DraculaTheme.MonoFont,
                 FontSize = 12.5,
                 Background = Theme.DraculaTheme.CurrentLineBrush,
@@ -93,7 +99,13 @@ namespace Taiji.Engine.Code
             if (def != null)
                 editor.SyntaxHighlighting = OneDarkHighlighting.Apply(def);
 
-            if (!forExport)
+            if (forExport)
+            {
+                var lines = Math.Max(1, editor.LineCount);
+                editor.MinHeight = Math.Max(MinEditorHeight, lines * LineHeight + 16);
+                editor.Height = double.NaN;
+            }
+            else
             {
                 var lines = Math.Max(1, editor.LineCount);
                 editor.Height = Math.Min(MaxDisplayHeight, Math.Max(MinEditorHeight, lines * LineHeight + 16));
@@ -122,26 +134,35 @@ namespace Taiji.Engine.Code
             return editor;
         }
 
-        private static void LayoutEditorFullHeight(TextEditor editor, double width)
+        internal static void ExpandForDocumentExport(CodeBlockEditor editor, double contentWidth)
         {
-            editor.Width = width;
-            editor.HorizontalAlignment = HorizontalAlignment.Left;
+            if (editor?.Editor == null) return;
+            ApplyFullDocumentHeight(editor.Editor, contentWidth, allowWrap: true);
+            editor.Height = editor.Editor.Height;
+            editor.MinHeight = editor.Editor.Height;
+        }
 
-            editor.Measure(new Size(width, double.PositiveInfinity));
-            var probeHeight = Math.Max(MinEditorHeight, editor.DesiredSize.Height);
-            if (double.IsInfinity(probeHeight) || double.IsNaN(probeHeight) || probeHeight <= 0)
-                probeHeight = Math.Max(MinEditorHeight, editor.LineCount * LineHeight + 16);
+        internal static void ApplyFullDocumentHeight(TextEditor editor, double width, bool allowWrap)
+        {
+            if (editor == null) return;
 
-            editor.Arrange(new Rect(0, 0, width, probeHeight));
+            if (width > 64)
+                editor.Width = width;
+
+            editor.WordWrap = allowWrap;
+            editor.Measure(new Size(width > 64 ? width : double.PositiveInfinity, double.PositiveInfinity));
+            var measureWidth = width > 64 ? width : Math.Max(120, editor.DesiredSize.Width);
+            var probeHeight = Math.Max(MinEditorHeight, editor.LineCount * LineHeight + 32);
+            editor.Arrange(new Rect(0, 0, measureWidth, probeHeight));
             editor.UpdateLayout();
 
             var contentHeight = editor.ExtentHeight;
             if (contentHeight <= 0 || double.IsNaN(contentHeight))
                 contentHeight = Math.Max(MinEditorHeight, editor.LineCount * LineHeight + 16);
 
-            var height = Math.Ceiling(contentHeight + editor.Padding.Top + editor.Padding.Bottom + 4);
+            var height = Math.Ceiling(contentHeight + editor.Padding.Top + editor.Padding.Bottom + 8);
             editor.Height = Math.Max(MinEditorHeight, height);
-            editor.Arrange(new Rect(0, 0, width, editor.Height));
+            editor.Arrange(new Rect(0, 0, measureWidth, editor.Height));
             editor.UpdateLayout();
         }
 
