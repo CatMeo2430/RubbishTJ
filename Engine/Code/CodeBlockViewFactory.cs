@@ -18,15 +18,17 @@ namespace Taiji.Engine.Code
         internal static void BubbleWheelToChat(object sender, MouseWheelEventArgs e)
         {
             if (e.Handled) return;
-            var src = sender as DependencyObject;
-            if (src == null) return;
+            if (!(sender is DependencyObject src)) return;
 
             RichTextBox chat = null;
             var walk = src;
             while (walk != null)
             {
-                chat = walk as RichTextBox;
-                if (chat != null) break;
+                if (walk is RichTextBox box)
+                {
+                    chat = box;
+                    break;
+                }
                 var parent = VisualTreeHelper.GetParent(walk);
                 if (parent == null)
                     parent = LogicalTreeHelper.GetParent(walk);
@@ -86,7 +88,7 @@ namespace Taiji.Engine.Code
             else if (language == "patch" || language == "diff")
                 language = "Patch";
             else if (language.Length > 0)
-                language = char.ToUpperInvariant(language[0]) + language.Substring(1);
+                language = $"{char.ToUpperInvariant(language[0])}{language.Substring(1)}";
 
             try
             {

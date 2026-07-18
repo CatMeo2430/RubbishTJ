@@ -19,7 +19,7 @@ namespace Taiji.Engine.Code
             var name = string.IsNullOrWhiteSpace(language) ? "code" : language.Trim();
             try
             {
-                return VisualExportHelper.PromptSaveElementPng(visual, name + ".png", owner);
+                return VisualExportHelper.PromptSaveElementPng(visual, $"{name}.png", owner);
             }
             catch (Exception ex)
             {

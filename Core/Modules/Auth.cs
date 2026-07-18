@@ -14,7 +14,7 @@ namespace Taiji.Core.Modules
 
         public Auth(TaijiHttp http)
         {
-            if (http == null) throw new ArgumentNullException("http");
+            if (http == null) throw new ArgumentNullException(nameof(http));
             _http = http;
         }
 

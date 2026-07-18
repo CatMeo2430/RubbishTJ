@@ -23,7 +23,7 @@ namespace Taiji.Proxy
                 }
                 catch (Exception ex)
                 {
-                    ProxyLog.Error("启动失败: " + ex.Message);
+                    ProxyLog.Error($"启动失败: {ex.Message}");
                     return 1;
                 }
 

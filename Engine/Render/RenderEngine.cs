@@ -39,31 +39,26 @@ namespace Taiji.Engine.Render
             Register(new PlainContentRenderer());
         }
 
-        public IEnumerable<IContentRenderer> Renderers
-        {
-            get { return _renderers; }
-        }
+        public IEnumerable<IContentRenderer> Renderers => _renderers;
 
         public void Register(IContentRenderer renderer)
         {
-            if (renderer == null) throw new ArgumentNullException("renderer");
+            if (renderer == null) throw new ArgumentNullException(nameof(renderer));
             _renderers.RemoveAll(r => string.Equals(r.Id, renderer.Id, StringComparison.OrdinalIgnoreCase));
             _renderers.Add(renderer);
             _renderers.Sort((a, b) => a.Priority.CompareTo(b.Priority));
-            Debug.WriteLine("[Render] 注册 " + renderer.Id + " priority=" + renderer.Priority);
+            Debug.WriteLine($"[Render] 注册 {renderer.Id} priority={renderer.Priority}");
         }
 
         /// <summary>渲染单条消息，返回可直接加入 FlowDocument 的根 Block。</summary>
         public RenderResult Render(RenderRequest request)
         {
-            if (request == null) throw new ArgumentNullException("request");
+            if (request == null) throw new ArgumentNullException(nameof(request));
 
-            IList<Block> body;
-            string id;
-            RenderBody(request, out body, out id);
+            var (body, id) = RenderBody(request);
 
             var root = WrapRoot(request.Role, body, request.Content);
-            Debug.WriteLine("[Render] Render " + request.Role + " via " + id);
+            Debug.WriteLine($"[Render] Render {request.Role} via {id}");
             return new RenderResult(id, root);
         }
 
@@ -79,7 +74,7 @@ namespace Taiji.Engine.Render
         }
 
         /// <summary>批量渲染完整对话文档。</summary>
-        public FlowDocument BuildDocument(IEnumerable<Tuple<RenderRole, string>> messages)
+        public FlowDocument BuildDocument(IEnumerable<(RenderRole role, string content)> messages)
         {
             var doc = new FlowDocument
             {
@@ -91,11 +86,40 @@ namespace Taiji.Engine.Render
                 LineHeight = 22
             };
             if (messages == null) return doc;
-            foreach (var m in messages)
+            foreach (var (role, content) in messages)
             {
-                var result = Render(m.Item1, m.Item2);
+                var result = Render(role, content);
                 if (result.Root != null)
                     doc.Blocks.Add(result.Root);
+            }
+            return doc;
+        }
+
+        /// <summary>批量渲染完整对话文档（逐条异步，避免长历史阻塞 UI）。</summary>
+        public async Task<FlowDocument> BuildDocumentAsync(IEnumerable<(RenderRole role, string content)> messages)
+        {
+            var doc = new FlowDocument
+            {
+                Background = DraculaTheme.BackgroundBrush,
+                Foreground = BodyFg,
+                FontFamily = DraculaTheme.UiFont,
+                FontSize = 13.5,
+                PagePadding = new Thickness(0),
+                LineHeight = 22
+            };
+            if (messages == null) return doc;
+
+            var dispatcher = Application.Current != null ? Application.Current.Dispatcher : null;
+            foreach (var (role, content) in messages)
+            {
+                var request = new RenderRequest(role, content);
+                var (body, _) = await RenderBodyAsync(request).ConfigureAwait(true);
+                var root = WrapRoot(role, body, content);
+                if (root != null)
+                    doc.Blocks.Add(root);
+
+                if (dispatcher != null)
+                    await dispatcher.InvokeAsync(() => { }, DispatcherPriority.Background).Task.ConfigureAwait(true);
             }
             return doc;
         }
@@ -103,7 +127,7 @@ namespace Taiji.Engine.Render
         public StreamRenderSession BeginStream(RenderRole role)
         {
             if (role != RenderRole.Ai && role != RenderRole.User)
-                throw new ArgumentException("流式仅支持 User/Ai", "role");
+                throw new ArgumentException("流式仅支持 User/Ai", nameof(role));
 
             var section = CreateBubbleShell(role);
             var run = new Run("") { Foreground = BodyFg };
@@ -115,17 +139,18 @@ namespace Taiji.Engine.Render
             return session;
         }
 
-        internal void RenderBody(RenderRequest request, out IList<Block> body, out string rendererId)
+        internal (IList<Block> body, string rendererId) RenderBody(RenderRequest request)
         {
             var renderer = Select(request);
-            rendererId = renderer.Id;
+            var rendererId = renderer.Id;
+            IList<Block> body;
             try
             {
                 body = renderer.RenderBody(request) ?? new List<Block>();
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("[Render] WARN: " + renderer.Id + " 失败: " + ex.Message);
+                Debug.WriteLine($"[Render] WARN: {renderer.Id} 失败: {ex.Message}");
                 body = new PlainContentRenderer().RenderBody(request);
                 rendererId = "plain";
             }
@@ -136,17 +161,17 @@ namespace Taiji.Engine.Render
                     new Paragraph(new Run(request.Content ?? "") { Foreground = BodyFg })
                 };
             }
+            return (body, rendererId);
         }
 
-        internal async Task<Tuple<IList<Block>, string>> RenderBodyAsync(RenderRequest request)
+        internal async Task<(IList<Block> body, string rendererId)> RenderBodyAsync(RenderRequest request)
         {
-            if (request == null) throw new ArgumentNullException("request");
+            if (request == null) throw new ArgumentNullException(nameof(request));
 
             var renderer = Select(request);
-            var md = renderer as MarkdownContentRenderer;
             var dispatcher = Application.Current != null ? Application.Current.Dispatcher : null;
 
-            if (md != null && dispatcher != null)
+            if (renderer is MarkdownContentRenderer md && dispatcher != null)
             {
                 Markdig.Syntax.MarkdownDocument parsed = null;
                 try
@@ -156,7 +181,7 @@ namespace Taiji.Engine.Render
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine("[Render] WARN: Markdig 解析失败: " + ex.Message);
+                    Debug.WriteLine($"[Render] WARN: Markdig 解析失败: {ex.Message}");
                 }
 
                 return await dispatcher.InvokeAsync(() =>
@@ -171,7 +196,7 @@ namespace Taiji.Engine.Render
                     }
                     catch (Exception ex)
                     {
-                        Debug.WriteLine("[Render] WARN: " + renderer.Id + " 失败: " + ex.Message);
+                        Debug.WriteLine($"[Render] WARN: {renderer.Id} 失败: {ex.Message}");
                         body = new PlainContentRenderer().RenderBody(request);
                         rendererId = "plain";
                     }
@@ -182,25 +207,14 @@ namespace Taiji.Engine.Render
                             new Paragraph(new Run(request.Content ?? "") { Foreground = BodyFg })
                         };
                     }
-                    return Tuple.Create(body, rendererId);
+                    return (body, rendererId);
                 }, DispatcherPriority.Background);
             }
 
             if (dispatcher != null)
-            {
-                return await dispatcher.InvokeAsync(() =>
-                {
-                    IList<Block> body;
-                    string id;
-                    RenderBody(request, out body, out id);
-                    return Tuple.Create(body, id);
-                }, DispatcherPriority.Background);
-            }
+                return await dispatcher.InvokeAsync(() => RenderBody(request), DispatcherPriority.Background);
 
-            IList<Block> syncBody;
-            string syncId;
-            RenderBody(request, out syncBody, out syncId);
-            return Tuple.Create(syncBody, syncId);
+            return RenderBody(request);
         }
 
         private IContentRenderer Select(RenderRequest request)

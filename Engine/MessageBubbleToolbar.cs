@@ -54,9 +54,7 @@ namespace Taiji.Engine
         internal static FlowDocument BuildExportDocument(string sourceText, double pageWidth)
         {
             var engine = new RenderEngine();
-            IList<Block> body;
-            string rendererId;
-            engine.RenderBody(new RenderRequest(RenderRole.Ai, sourceText), out body, out rendererId);
+            var (body, rendererId) = engine.RenderBody(new RenderRequest(RenderRole.Ai, sourceText));
 
             var doc = VisualExportHelper.CreateExportDocument(pageWidth);
             var shell = RenderEngine.CreateBubbleShell(RenderRole.Ai);

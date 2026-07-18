@@ -8,9 +8,9 @@ namespace Taiji.Engine.Builtin
 {
     internal sealed class SystemContentRenderer : IContentRenderer
     {
-        public string Id { get { return "system"; } }
-        public string DisplayName { get { return "System"; } }
-        public int Priority { get { return 0; } }
+        public string Id => "system";
+        public string DisplayName => "System";
+        public int Priority => 0;
 
         public bool CanHandle(RenderRequest request)
         {

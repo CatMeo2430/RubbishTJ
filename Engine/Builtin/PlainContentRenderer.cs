@@ -8,9 +8,9 @@ namespace Taiji.Engine.Builtin
 {
     public sealed class PlainContentRenderer : IContentRenderer
     {
-        public string Id { get { return "plain"; } }
-        public string DisplayName { get { return "Plain Text"; } }
-        public int Priority { get { return 100; } }
+        public string Id => "plain";
+        public string DisplayName => "Plain Text";
+        public int Priority => 100;
 
         public bool CanHandle(RenderRequest request)
         {

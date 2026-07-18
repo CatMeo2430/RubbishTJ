@@ -161,11 +161,11 @@ namespace Taiji.Engine.Latex
             var env = m.Groups[1].Value;
             if (!IsMathEnvironment(env)) return false;
             var open = m.Value;
-            var close = "\\end{" + env + "}";
+            var close = $"\\end{{{env}}}";
             var start = i + open.Length;
             var end = text.IndexOf(close, start, StringComparison.Ordinal);
             if (end < 0) return false;
-            var body = open + text.Substring(start, end - start) + close;
+            var body = $"{open}{text.Substring(start, end - start)}{close}";
             AppendDisplay(sb, FlattenWs(body));
             next = end + close.Length;
             return true;

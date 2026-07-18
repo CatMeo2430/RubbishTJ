@@ -17,8 +17,8 @@ namespace Taiji.Core.Modules
 
         public Chat(TaijiHttp http, List list)
         {
-            if (http == null) throw new ArgumentNullException("http");
-            if (list == null) throw new ArgumentNullException("list");
+            if (http == null) throw new ArgumentNullException(nameof(http));
+            if (list == null) throw new ArgumentNullException(nameof(list));
             _http = http;
             _list = list;
         }
@@ -81,14 +81,13 @@ namespace Taiji.Core.Modules
                     && media.IndexOf("event-stream", StringComparison.OrdinalIgnoreCase) < 0)
                 {
                     var errText = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
-                    throw new ApiException("非 SSE 响应: " + errText);
+                    throw new ApiException($"非 SSE 响应: {errText}");
                 }
 
                 if (!resp.IsSuccessStatusCode)
                 {
                     var errText = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
-                    throw new ApiException("HTTP " + (int)resp.StatusCode + ": " +
-                        (errText != null && errText.Length > 200 ? errText.Substring(0, 200) : errText));
+                    throw new ApiException($"HTTP {(int)resp.StatusCode}: {(errText != null && errText.Length > 200 ? errText.Substring(0, 200) : errText)}");
                 }
 
                 using (var stream = await resp.Content.ReadAsStreamAsync().ConfigureAwait(false))
@@ -127,8 +126,7 @@ namespace Taiji.Core.Modules
                             if (piece == null) piece = "";
                             sb.Append(piece);
                             result.StringEvents++;
-                            if (onChunk != null)
-                                onChunk(piece);
+                            onChunk?.Invoke(piece);
                         }
                         else if (string.Equals(msg.Type, "object", StringComparison.OrdinalIgnoreCase))
                         {
@@ -142,8 +140,8 @@ namespace Taiji.Core.Modules
                                 if (!string.IsNullOrEmpty(ai))
                                 {
                                     sb.Append(ai);
-                                    if (onChunk != null && result.StringEvents == 0)
-                                        onChunk(ai);
+                                    if (result.StringEvents == 0)
+                                        onChunk?.Invoke(ai);
                                 }
                             }
                         }

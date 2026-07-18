@@ -39,7 +39,7 @@ namespace Taiji.Proxy
         {
             _listener.Start();
             _running = true;
-            ProxyLog.Info("监听 " + string.Join(", ", _listener.Prefixes));
+            ProxyLog.Info($"监听 {string.Join(", ", _listener.Prefixes)}");
             ListenLoop();
         }
 
@@ -89,7 +89,7 @@ namespace Taiji.Proxy
             }
             catch (Exception ex)
             {
-                ProxyLog.Error("[" + log.Id + "] 未处理异常: " + ex.Message);
+                ProxyLog.Error($"[{log.Id}] 未处理异常: {ex.Message}");
                 try
                 {
                     if (ctx.Response.OutputStream.CanWrite)
@@ -101,12 +101,12 @@ namespace Taiji.Proxy
                                 Message = ex.Message,
                                 Type = "internal_error"
                             }
-                        }, "error=" + ProxyLog.Preview(ex.Message, 80));
+                        }, $"error={ProxyLog.Preview(ex.Message, 80)}");
                     }
                 }
                 catch (Exception writeEx)
                 {
-                    ProxyLog.Error("[" + log.Id + "] 写入错误响应失败: " + writeEx.Message);
+                    ProxyLog.Error($"[{log.Id}] 写入错误响应失败: {writeEx.Message}");
                 }
             }
         }
@@ -151,8 +151,8 @@ namespace Taiji.Proxy
                 var body = await ReadBodyAsync(req).ConfigureAwait(false);
                 var payload = JsonConvert.DeserializeObject<RenameSessionRequest>(body);
                 var detail = payload != null
-                    ? "sessionId=" + payload.SessionId + " name=" + ProxyLog.Preview(payload.Name ?? "", 60)
-                    : "body=" + ProxyLog.Preview(body, 80);
+                    ? $"sessionId={payload.SessionId} name={ProxyLog.Preview(payload.Name ?? "", 60)}"
+                    : $"body={ProxyLog.Preview(body, 80)}";
                 ProxyLog.RequestStart(log, detail);
                 await RunGatedAsync(log, () => RenameSessionAsync(res, log, payload)).ConfigureAwait(false);
                 return;
@@ -164,8 +164,8 @@ namespace Taiji.Proxy
                 var body = await ReadBodyAsync(req).ConfigureAwait(false);
                 var payload = JsonConvert.DeserializeObject<SessionIdRequest>(body);
                 var detail = payload != null
-                    ? "sessionId=" + payload.SessionId
-                    : "body=" + ProxyLog.Preview(body, 80);
+                    ? $"sessionId={payload.SessionId}"
+                    : $"body={ProxyLog.Preview(body, 80)}";
                 ProxyLog.RequestStart(log, detail);
                 await RunGatedAsync(log, () => DeleteSessionAsync(res, log, payload)).ConfigureAwait(false);
                 return;
@@ -190,7 +190,7 @@ namespace Taiji.Proxy
 
                 if (!sessionId.HasValue)
                 {
-                    ProxyLog.RequestStart(log, "invalid api_key body=" + ProxyLog.Preview(body, 80));
+                    ProxyLog.RequestStart(log, $"invalid api_key body={ProxyLog.Preview(body, 80)}");
                     WriteJson(log, res, 401, new OpenAiErrorResponse
                     {
                         Error = new OpenAiErrorBody
@@ -215,11 +215,7 @@ namespace Taiji.Proxy
                 string preview;
                 int imageCount;
                 SummarizeChatRequest(chatReq, out preview, out imageCount);
-                var chatDetail = "model=" + (chatReq.Model ?? "")
-                    + " stream=" + (chatReq.Stream ? "true" : "false")
-                    + " messages=" + chatReq.Messages.Count
-                    + " images=" + imageCount
-                    + " prompt=" + preview;
+                var chatDetail = $"model={chatReq.Model ?? ""} stream={(chatReq.Stream ? "true" : "false")} messages={chatReq.Messages.Count} images={imageCount} prompt={preview}";
                 ProxyLog.RequestStart(log, chatDetail);
 
                 if (chatReq.Stream)
@@ -232,7 +228,7 @@ namespace Taiji.Proxy
             ProxyLog.RequestStart(log, "unknown route");
             WriteJson(log, res, 404, new OpenAiErrorResponse
             {
-                Error = new OpenAiErrorBody { Message = "Not found: " + path, Type = "not_found" }
+                Error = new OpenAiErrorBody { Message = $"Not found: {path}", Type = "not_found" }
             }, "not_found");
         }
 
@@ -276,11 +272,11 @@ namespace Taiji.Proxy
 
         private async Task RunGatedAsync(RequestLog log, Func<Task> action)
         {
-            ProxyLog.Info("[" + log.Id + "] 等待上游队列…");
+            ProxyLog.Info($"[{log.Id}] 等待上游队列…");
             await _gate.WaitAsync().ConfigureAwait(false);
             try
             {
-                ProxyLog.Info("[" + log.Id + "] 开始处理");
+                ProxyLog.Info($"[{log.Id}] 开始处理");
                 await action().ConfigureAwait(false);
             }
             finally
@@ -291,11 +287,11 @@ namespace Taiji.Proxy
 
         private async Task RunGatedStreamingAsync(RequestLog log, HttpListenerResponse res, long sessionId, OpenAiChatRequest chatReq)
         {
-            ProxyLog.Info("[" + log.Id + "] 等待上游队列…");
+            ProxyLog.Info($"[{log.Id}] 等待上游队列…");
             await _gate.WaitAsync().ConfigureAwait(false);
             try
             {
-                ProxyLog.Info("[" + log.Id + "] 开始流式处理");
+                ProxyLog.Info($"[{log.Id}] 开始流式处理");
                 await ChatCompletionsStreamAsync(res, log, sessionId, chatReq).ConfigureAwait(false);
             }
             finally
@@ -357,7 +353,7 @@ namespace Taiji.Proxy
             {
                 Sessions = items,
                 PagesLoaded = pagesLoaded
-            }, "sessions=" + items.Count + " pages=" + pagesLoaded);
+            }, $"sessions={items.Count} pages={pagesLoaded}");
         }
 
         private Task GetModelsListAsync(HttpListenerResponse res, RequestLog log)
@@ -391,7 +387,7 @@ namespace Taiji.Proxy
                 MaxFileCount = tmpl.MFileCount > 0 ? tmpl.MFileCount : Constant.DefaultMaxFileCount,
                 MaxFileSizeMb = tmpl.MFileSize > 0 ? tmpl.MFileSize : Constant.DefaultMaxFileMb,
                 Providers = groups
-            }, "providers=" + groups.Count + " models=" + modelCount);
+            }, $"providers={groups.Count} models={modelCount}");
             return Task.FromResult(0);
         }
 
@@ -411,7 +407,7 @@ namespace Taiji.Proxy
                     Object = "model",
                     OwnedBy = m.ProviderName ?? "taiji"
                 }).ToList()
-            }, "models=" + count);
+            }, $"models={count}");
             return Task.FromResult(0);
         }
 
@@ -451,7 +447,7 @@ namespace Taiji.Proxy
                 Name = updated.DisplayName,
                 Model = updated.Model,
                 Updated = updated.Updated
-            }, "renamed name=" + ProxyLog.Preview(updated.DisplayName, 60));
+            }, $"renamed name={ProxyLog.Preview(updated.DisplayName, 60)}");
         }
 
         private async Task DeleteSessionAsync(HttpListenerResponse res, RequestLog log, SessionIdRequest req)
@@ -499,7 +495,7 @@ namespace Taiji.Proxy
                 false,
                 null).ConfigureAwait(false);
 
-            var completionId = "chatcmpl-" + (result.TaskId ?? sessionId.ToString());
+            var completionId = $"chatcmpl-{result.TaskId ?? sessionId.ToString()}";
             var respModel = chatReq.Model;
             if (string.IsNullOrEmpty(respModel) && result.Record != null)
                 respModel = (string)result.Record["model"];
@@ -521,9 +517,7 @@ namespace Taiji.Proxy
                     }
                 },
                 session_id = sessionId
-            }, "chars=" + answer.Length
-                + " interrupted=" + (result.StreamInterrupted ? "true" : "false")
-                + " preview=" + ProxyLog.Preview(answer, 100));
+            }, $"chars={answer.Length} interrupted={(result.StreamInterrupted ? "true" : "false")} preview={ProxyLog.Preview(answer, 100)}");
         }
 
         private async Task ChatCompletionsStreamAsync(HttpListenerResponse res, RequestLog log, long sessionId, OpenAiChatRequest chatReq)
@@ -537,7 +531,7 @@ namespace Taiji.Proxy
             res.Headers.Add("Cache-Control", "no-cache");
             res.SendChunked = true;
 
-            var completionId = "chatcmpl-" + sessionId + "-" + DateTime.UtcNow.Ticks;
+            var completionId = $"chatcmpl-{sessionId}-{DateTime.UtcNow.Ticks}";
             var model = chatReq.Model ?? "";
             var stream = res.OutputStream;
             var enc = new UTF8Encoding(false);
@@ -566,10 +560,10 @@ namespace Taiji.Proxy
                 WriteSseChunk(stream, enc, completionId, model, null, "stop");
                 if (result.StreamInterrupted)
                 {
-                    var warn = enc.GetBytes("data: " + JsonConvert.SerializeObject(new
+                    var warn = enc.GetBytes($"data: {JsonConvert.SerializeObject(new
                     {
                         error = new { message = "连接已中断，回复可能不完整", type = "stream_interrupted" }
-                    }) + "\n\n");
+                    })}\n\n");
                     stream.Write(warn, 0, warn.Length);
                 }
 
@@ -579,10 +573,10 @@ namespace Taiji.Proxy
             catch (ApiException ex)
             {
                 errorMsg = ex.Message;
-                var err = enc.GetBytes("data: " + JsonConvert.SerializeObject(new
+                var err = enc.GetBytes($"data: {JsonConvert.SerializeObject(new
                 {
                     error = new { message = ex.Message, type = "api_error", code = ex.Code }
-                }) + "\n\n");
+                })}\n\n");
                 stream.Write(err, 0, err.Length);
                 var done = enc.GetBytes("data: [DONE]\n\n");
                 stream.Write(done, 0, done.Length);
@@ -591,11 +585,9 @@ namespace Taiji.Proxy
             {
                 stream.Flush();
                 res.Close();
-                var detail = "stream chunks=" + chunkCount
-                    + " chars=" + totalChars
-                    + " interrupted=" + (interrupted ? "true" : "false");
+                var detail = $"stream chunks={chunkCount} chars={totalChars} interrupted={(interrupted ? "true" : "false")}";
                 if (!string.IsNullOrEmpty(errorMsg))
-                    detail += " error=" + ProxyLog.Preview(errorMsg, 80);
+                    detail = $"{detail} error={ProxyLog.Preview(errorMsg, 80)}";
                 ProxyLog.RequestEnd(log, errorMsg != null ? 502 : 200, detail);
             }
         }
@@ -639,7 +631,7 @@ namespace Taiji.Proxy
                 };
             }
 
-            var line = enc.GetBytes("data: " + JsonConvert.SerializeObject(payload) + "\n\n");
+            var line = enc.GetBytes($"data: {JsonConvert.SerializeObject(payload)}\n\n");
             stream.Write(line, 0, line.Length);
             stream.Flush();
         }
@@ -727,8 +719,8 @@ namespace Taiji.Proxy
 
             var detail = responseDetail ?? "";
             if (detail.Length > 0)
-                detail += " ";
-            detail += "bytes=" + bytes.Length;
+                detail = $"{detail} ";
+            detail = $"{detail}bytes={bytes.Length}";
             ProxyLog.RequestEnd(log, status, detail);
         }
     }

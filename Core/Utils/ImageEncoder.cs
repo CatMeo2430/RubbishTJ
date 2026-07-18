@@ -16,11 +16,11 @@ namespace Taiji.Core.Utils
         public static ChatFilePayload EncodeFile(string path)
         {
             if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
-                throw new ApiException("文件不存在: " + path);
+                throw new ApiException($"文件不存在: {path}");
 
             var ext = Path.GetExtension(path);
             if (!AllowedExt.Contains(ext))
-                throw new ApiException("不支持的图片类型: " + (string.IsNullOrEmpty(ext) ? "(无扩展名)" : ext));
+                throw new ApiException($"不支持的图片类型: {(string.IsNullOrEmpty(ext) ? "(无扩展名)" : ext)}");
 
             var mime = GuessMime(ext);
             var bytes = File.ReadAllBytes(path);
@@ -28,7 +28,7 @@ namespace Taiji.Core.Utils
             return new ChatFilePayload
             {
                 Name = Path.GetFileName(path),
-                Data = "data:" + mime + ";base64," + b64
+                Data = $"data:{mime};base64,{b64}"
             };
         }
 
@@ -42,12 +42,12 @@ namespace Taiji.Core.Utils
             foreach (var path in paths)
             {
                 if (list.Count >= maxCount)
-                    throw new ApiException("最多 " + maxCount + " 张图片");
+                    throw new ApiException($"最多 {maxCount} 张图片");
                 var fi = new FileInfo(path);
                 if (!fi.Exists)
-                    throw new ApiException("文件不存在: " + path);
+                    throw new ApiException($"文件不存在: {path}");
                 if (fi.Length > limit)
-                    throw new ApiException(fi.Name + " 超过 " + maxMb + "MB 限制");
+                    throw new ApiException($"{fi.Name} 超过 {maxMb}MB 限制");
                 list.Add(EncodeFile(path));
             }
             return list;

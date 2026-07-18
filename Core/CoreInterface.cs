@@ -20,33 +20,33 @@ namespace Taiji.Core
             string account,
             string password,
             bool rememberAutoLogin,
-            CancellationToken ct = default(CancellationToken));
+            CancellationToken ct = default);
 
         LoginPromptInfo GetLoginPromptInfo();
 
         Task<LoginResult> EnsureAuthenticatedAsync(
             Func<LoginPromptInfo, Task<LoginCredentials>> promptLoginAsync,
-            CancellationToken ct = default(CancellationToken));
+            CancellationToken ct = default);
 
         /// <summary>从 CredentialStore 恢复登录（无交互），供 Proxy 等无 UI 场景使用。</summary>
-        Task<LoginResult> EnsureAuthenticatedFromStoreAsync(CancellationToken ct = default(CancellationToken));
+        Task<LoginResult> EnsureAuthenticatedFromStoreAsync(CancellationToken ct = default);
 
-        Task<ChatTmpl> LoadModelsAsync(CancellationToken ct = default(CancellationToken));
+        Task<ChatTmpl> LoadModelsAsync(CancellationToken ct = default);
         IList<ProviderInfo> GetProvidersOrdered();
         IList<string> GetProviderNamesWithModels();
         IList<ModelInfo> ModelsByProviderName(string providerName);
         ModelInfo FindModelByValue(string value);
 
-        Task<PageResult<ChatSessionInfo>> ListSessionsPageAsync(int page = 1, string search = null, CancellationToken ct = default(CancellationToken));
-        Task<List<ChatSessionInfo>> ListAllSessionsAsync(CancellationToken ct = default(CancellationToken));
-        Task<ChatSessionInfo> CreateSessionAsync(string model, bool webSearch = false, CancellationToken ct = default(CancellationToken));
+        Task<PageResult<ChatSessionInfo>> ListSessionsPageAsync(int page = 1, string search = null, CancellationToken ct = default);
+        Task<List<ChatSessionInfo>> ListAllSessionsAsync(CancellationToken ct = default);
+        Task<ChatSessionInfo> CreateSessionAsync(string model, bool webSearch = false, CancellationToken ct = default);
         void AttachSession(ChatSessionInfo session);
-        Task<ChatSessionInfo> UpdateSessionAsync(ChatSessionInfo session, CancellationToken ct = default(CancellationToken));
-        Task<ChatSessionInfo> RenameSessionAsync(ChatSessionInfo session, string newName, CancellationToken ct = default(CancellationToken));
-        Task DeleteSessionAsync(long sessionId, CancellationToken ct = default(CancellationToken));
+        Task<ChatSessionInfo> UpdateSessionAsync(ChatSessionInfo session, CancellationToken ct = default);
+        Task<ChatSessionInfo> RenameSessionAsync(ChatSessionInfo session, string newName, CancellationToken ct = default);
+        Task DeleteSessionAsync(long sessionId, CancellationToken ct = default);
 
-        Task<PageResult<ChatRecord>> ListRecordsPageAsync(long sessionId, int page = 1, CancellationToken ct = default(CancellationToken));
-        Task<List<ChatRecord>> ListAllRecordsAsync(long sessionId, CancellationToken ct = default(CancellationToken));
+        Task<PageResult<ChatRecord>> ListRecordsPageAsync(long sessionId, int page = 1, CancellationToken ct = default);
+        Task<List<ChatRecord>> ListAllRecordsAsync(long sessionId, CancellationToken ct = default);
 
         Task<ChatStreamResult> SendMessageAsync(
             string text,
@@ -55,7 +55,7 @@ namespace Taiji.Core
             bool thinking = false,
             bool webSearch = false,
             Action<string> onChunk = null,
-            CancellationToken ct = default(CancellationToken));
+            CancellationToken ct = default);
     }
 
     public sealed class TaijiCore : ITaijiCore
@@ -76,25 +76,13 @@ namespace Taiji.Core
             _chat = new Chat(_http, _list);
         }
 
-        public string Token
-        {
-            get { return _http.Token; }
-        }
+        public string Token => _http.Token;
 
-        public LoginResult LastLogin
-        {
-            get { return _auth.LastLogin; }
-        }
+        public LoginResult LastLogin => _auth.LastLogin;
 
-        public ChatTmpl ModelTmpl
-        {
-            get { return _catalog.Tmpl; }
-        }
+        public ChatTmpl ModelTmpl => _catalog.Tmpl;
 
-        public ChatSessionInfo CurrentSession
-        {
-            get { return _list.CurrentSession; }
-        }
+        public ChatSessionInfo CurrentSession => _list.CurrentSession;
 
         public void Dispose()
         {
@@ -105,7 +93,7 @@ namespace Taiji.Core
             string account,
             string password,
             bool rememberAutoLogin,
-            CancellationToken ct = default(CancellationToken))
+            CancellationToken ct = default)
         {
             return _auth.LoginAsync(account, password, rememberAutoLogin, ct);
         }
@@ -117,7 +105,7 @@ namespace Taiji.Core
 
         public async Task<LoginResult> EnsureAuthenticatedAsync(
             Func<LoginPromptInfo, Task<LoginCredentials>> promptLoginAsync,
-            CancellationToken ct = default(CancellationToken))
+            CancellationToken ct = default)
         {
             if (_auth.TryApplyStoredToken())
             {
@@ -151,8 +139,7 @@ namespace Taiji.Core
             if (promptLoginAsync == null)
             {
                 throw new ApiException(
-                    "无法从凭据文件登录（" + CredentialStore.FilePath
-                    + "）。请先用 GUI 登录，或在 Proxy\\App.config 配置 Account/Password。");
+                    $"无法从凭据文件登录（{CredentialStore.FilePath}）。请先用 GUI 登录，或在 Proxy\\App.config 配置 Account/Password。");
             }
 
             var hint = _auth.GetLoginPromptInfo();
@@ -169,12 +156,12 @@ namespace Taiji.Core
             return result;
         }
 
-        public Task<LoginResult> EnsureAuthenticatedFromStoreAsync(CancellationToken ct = default(CancellationToken))
+        public Task<LoginResult> EnsureAuthenticatedFromStoreAsync(CancellationToken ct = default)
         {
             return EnsureAuthenticatedAsync(null, ct);
         }
 
-        public Task<ChatTmpl> LoadModelsAsync(CancellationToken ct = default(CancellationToken))
+        public Task<ChatTmpl> LoadModelsAsync(CancellationToken ct = default)
         {
             return _catalog.LoadAsync(ct);
         }
@@ -199,17 +186,17 @@ namespace Taiji.Core
             return _catalog.FindByValue(value);
         }
 
-        public Task<PageResult<ChatSessionInfo>> ListSessionsPageAsync(int page = 1, string search = null, CancellationToken ct = default(CancellationToken))
+        public Task<PageResult<ChatSessionInfo>> ListSessionsPageAsync(int page = 1, string search = null, CancellationToken ct = default)
         {
             return _list.ListSessionsPageAsync(page, search, ct);
         }
 
-        public Task<List<ChatSessionInfo>> ListAllSessionsAsync(CancellationToken ct = default(CancellationToken))
+        public Task<List<ChatSessionInfo>> ListAllSessionsAsync(CancellationToken ct = default)
         {
             return _list.ListAllSessionsAsync(ct);
         }
 
-        public Task<ChatSessionInfo> CreateSessionAsync(string model, bool webSearch = false, CancellationToken ct = default(CancellationToken))
+        public Task<ChatSessionInfo> CreateSessionAsync(string model, bool webSearch = false, CancellationToken ct = default)
         {
             return _list.CreateSessionAsync(model, webSearch, ct);
         }
@@ -219,27 +206,27 @@ namespace Taiji.Core
             _list.AttachSession(session);
         }
 
-        public Task<ChatSessionInfo> UpdateSessionAsync(ChatSessionInfo session, CancellationToken ct = default(CancellationToken))
+        public Task<ChatSessionInfo> UpdateSessionAsync(ChatSessionInfo session, CancellationToken ct = default)
         {
             return _list.UpdateSessionAsync(session, ct);
         }
 
-        public Task<ChatSessionInfo> RenameSessionAsync(ChatSessionInfo session, string newName, CancellationToken ct = default(CancellationToken))
+        public Task<ChatSessionInfo> RenameSessionAsync(ChatSessionInfo session, string newName, CancellationToken ct = default)
         {
             return _list.RenameSessionAsync(session, newName, ct);
         }
 
-        public Task DeleteSessionAsync(long sessionId, CancellationToken ct = default(CancellationToken))
+        public Task DeleteSessionAsync(long sessionId, CancellationToken ct = default)
         {
             return _list.DeleteSessionAsync(sessionId, ct);
         }
 
-        public Task<PageResult<ChatRecord>> ListRecordsPageAsync(long sessionId, int page = 1, CancellationToken ct = default(CancellationToken))
+        public Task<PageResult<ChatRecord>> ListRecordsPageAsync(long sessionId, int page = 1, CancellationToken ct = default)
         {
             return _list.ListRecordsPageAsync(sessionId, page, ct);
         }
 
-        public Task<List<ChatRecord>> ListAllRecordsAsync(long sessionId, CancellationToken ct = default(CancellationToken))
+        public Task<List<ChatRecord>> ListAllRecordsAsync(long sessionId, CancellationToken ct = default)
         {
             return _list.ListAllRecordsAsync(sessionId, ct);
         }
@@ -251,7 +238,7 @@ namespace Taiji.Core
             bool thinking = false,
             bool webSearch = false,
             Action<string> onChunk = null,
-            CancellationToken ct = default(CancellationToken))
+            CancellationToken ct = default)
         {
             return _chat.SendAsync(text, files, sessionId, thinking, webSearch, onChunk, ct);
         }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Documents;
@@ -20,7 +21,7 @@ namespace Taiji.Engine.Render
         private readonly Section _section;
         private readonly Paragraph _bodyParagraph;
         private readonly Run _bodyRun;
-        private string _buffer = "";
+        private readonly StringBuilder _buffer = new StringBuilder();
         private bool _completed;
         private bool _thinking;
 
@@ -33,16 +34,16 @@ namespace Taiji.Engine.Render
             _bodyRun = bodyRun;
         }
 
-        public Section Section { get { return _section; } }
-        public string Buffer { get { return _buffer; } }
-        public bool IsCompleted { get { return _completed; } }
-        public bool IsThinking { get { return _thinking; } }
+        public Section Section => _section;
+        public string Buffer => _buffer.ToString();
+        public bool IsCompleted => _completed;
+        public bool IsThinking => _thinking;
 
         public void ShowThinking(string tip)
         {
             if (_completed) return;
             _thinking = true;
-            _buffer = "";
+            _buffer.Clear();
             _bodyRun.Text = tip ?? "思考中......";
             _bodyRun.FontStyle = FontStyles.Italic;
             _bodyRun.Foreground = DraculaTheme.CyanBrush;
@@ -54,7 +55,7 @@ namespace Taiji.Engine.Render
             _thinking = false;
             _bodyRun.FontStyle = FontStyles.Normal;
             _bodyRun.Foreground = DraculaTheme.ForegroundBrush;
-            _bodyRun.Text = _buffer ?? "";
+            _bodyRun.Text = Buffer;
         }
 
         public void Append(string chunk)
@@ -62,8 +63,8 @@ namespace Taiji.Engine.Render
             if (_completed || string.IsNullOrEmpty(chunk)) return;
             if (_thinking)
                 ClearThinking();
-            _buffer = _buffer + chunk;
-            _bodyRun.Text = _buffer;
+            _buffer.Append(chunk);
+            _bodyRun.Text = Buffer;
         }
 
         public RenderResult Complete()
@@ -78,7 +79,7 @@ namespace Taiji.Engine.Render
             _completed = true;
             _thinking = false;
 
-            var text = _buffer ?? "";
+            var text = Buffer;
             if (_bodyParagraph != null && _section.Blocks.Contains(_bodyParagraph))
                 _section.Blocks.Remove(_bodyParagraph);
 
@@ -102,13 +103,11 @@ namespace Taiji.Engine.Render
             try
             {
                 var request = new RenderRequest(_role, text);
-                var pair = await _engine.RenderBodyAsync(request).ConfigureAwait(true);
-                body = pair.Item1;
-                rendererId = pair.Item2;
+                (body, rendererId) = await _engine.RenderBodyAsync(request).ConfigureAwait(true);
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("[Render] WARN: 流式 Complete 失败: " + ex.Message);
+                Debug.WriteLine($"[Render] WARN: 流式 Complete 失败: {ex.Message}");
                 body = new List<WpfBlock> { new Paragraph(new Run(text)) };
                 rendererId = "plain";
             }
@@ -121,7 +120,7 @@ namespace Taiji.Engine.Render
             foreach (var block in body)
                 _section.Blocks.Add(block);
 
-            Debug.WriteLine("[Render] 流式完成 → " + rendererId + " (" + text.Length + " chars)");
+            Debug.WriteLine($"[Render] 流式完成 → {rendererId} ({text.Length} chars)");
             return new RenderResult(rendererId, _section);
         }
     }

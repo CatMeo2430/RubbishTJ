@@ -197,8 +197,7 @@ namespace Taiji.Engine.Markdown
 
         private static void ApplyQuoteTint(WpfBlock b)
         {
-            var p = b as WpfParagraph;
-            if (p != null)
+            if (b is WpfParagraph p)
             {
                 p.Foreground = DraculaTheme.CommentBrush;
                 p.FontStyle = FontStyles.Italic;
@@ -210,7 +209,7 @@ namespace Taiji.Engine.Markdown
             var index = 1;
             foreach (ListItemBlock item in list)
             {
-                var prefix = list.IsOrdered ? (index + ". ") : "• ";
+                var prefix = list.IsOrdered ? $"{index}. " : "• ";
                 var itemBlocks = new List<WpfBlock>();
                 foreach (var child in item)
                     WriteBlock(child, itemBlocks);
@@ -226,8 +225,7 @@ namespace Taiji.Engine.Markdown
                 }
                 else
                 {
-                    var first = itemBlocks[0] as WpfParagraph;
-                    if (first != null)
+                    if (itemBlocks[0] is WpfParagraph first)
                     {
                         var prefixRun = new WpfRun(prefix) { Foreground = DraculaTheme.CyanBrush };
                         if (first.Inlines.FirstInline != null)
@@ -346,7 +344,7 @@ namespace Taiji.Engine.Markdown
                 var link = (LinkInline)inline;
                 if (link.IsImage)
                 {
-                    target.Add(new WpfRun("[图片] " + (link.Url ?? ""))
+                    target.Add(new WpfRun($"[图片] {link.Url ?? ""}")
                     {
                         Foreground = DraculaTheme.CyanBrush,
                         FontStyle = FontStyles.Italic

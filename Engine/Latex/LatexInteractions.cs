@@ -113,7 +113,7 @@ namespace Taiji.Engine.Latex
             var dialog = new SaveFileDialog
             {
                 Filter = filter,
-                FileName = "formula" + extension
+                FileName = $"formula{extension}"
             };
             if (dialog.ShowDialog(owner) != true)
                 return null;

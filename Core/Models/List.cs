@@ -87,14 +87,7 @@ namespace Taiji.Core.Models
         public long UseAppId { get; set; }
 
         [JsonIgnore]
-        public string DisplayName
-        {
-            get
-            {
-                if (!string.IsNullOrEmpty(Name)) return Name;
-                return "#" + Id;
-            }
-        }
+        public string DisplayName => !string.IsNullOrEmpty(Name) ? Name : $"#{Id}";
     }
 
     public sealed class ChatRecord

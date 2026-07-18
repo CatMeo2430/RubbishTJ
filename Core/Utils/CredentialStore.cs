@@ -17,10 +17,7 @@ namespace Taiji.Core.Utils
             }
         }
 
-        public static string FilePath
-        {
-            get { return Path.Combine(DirectoryPath, "credentials.json"); }
-        }
+        public static string FilePath => Path.Combine(DirectoryPath, "credentials.json");
 
         public static StoredCredentials Load()
         {

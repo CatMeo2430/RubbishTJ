@@ -17,8 +17,11 @@ namespace Taiji.Engine.Render
             var walk = source;
             while (walk != null)
             {
-                view = walk as RatexFormulaView;
-                if (view != null) return true;
+                if (walk is RatexFormulaView v)
+                {
+                    view = v;
+                    return true;
+                }
                 walk = VisualTreeHelper.GetParent(walk) ?? LogicalTreeHelper.GetParent(walk);
             }
             return false;
@@ -57,8 +60,11 @@ namespace Taiji.Engine.Render
             var walk = source;
             while (walk != null)
             {
-                editor = walk as CodeBlockEditor;
-                if (editor != null) return true;
+                if (walk is CodeBlockEditor ed)
+                {
+                    editor = ed;
+                    return true;
+                }
                 walk = VisualTreeHelper.GetParent(walk) ?? LogicalTreeHelper.GetParent(walk);
             }
             return false;

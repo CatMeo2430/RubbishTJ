@@ -12,11 +12,11 @@ namespace Taiji.Engine.Latex
 
         public static ILatexRenderEngine Default
         {
-            get { return _default; }
+            get => _default;
             set
             {
                 if (value == null)
-                    throw new ArgumentNullException("value");
+                    throw new ArgumentNullException(nameof(value));
                 _default = value;
             }
         }

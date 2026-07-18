@@ -14,7 +14,7 @@ namespace Taiji.Core.Modules
 
         public List(TaijiHttp http)
         {
-            if (http == null) throw new ArgumentNullException("http");
+            if (http == null) throw new ArgumentNullException(nameof(http));
             _http = http;
         }
 
@@ -42,7 +42,7 @@ namespace Taiji.Core.Modules
 
         public void AttachSession(ChatSessionInfo session)
         {
-            if (session == null) throw new ArgumentNullException("session");
+            if (session == null) throw new ArgumentNullException(nameof(session));
             CurrentSession = session;
         }
 
@@ -52,9 +52,9 @@ namespace Taiji.Core.Modules
             CancellationToken ct)
         {
             if (page < 1) page = 1;
-            var path = "/chat/session?page=" + page;
+            var path = $"/chat/session?page={page}";
             if (!string.IsNullOrEmpty(search))
-                path = path + "&search=" + Uri.EscapeDataString(search);
+                path = $"{path}&search={Uri.EscapeDataString(search)}";
 
             var pageResult = await _http.GetDataAsync<PageResult<ChatSessionInfo>>(path, ct)
                 .ConfigureAwait(false);
@@ -85,9 +85,9 @@ namespace Taiji.Core.Modules
 
         public async Task<ChatSessionInfo> UpdateSessionAsync(ChatSessionInfo session, CancellationToken ct)
         {
-            if (session == null) throw new ArgumentNullException("session");
+            if (session == null) throw new ArgumentNullException(nameof(session));
             var updated = await _http.PutDataAsync<ChatSessionInfo>(
-                "/chat/session/" + session.Id, session, ct).ConfigureAwait(false);
+                $"/chat/session/{session.Id}", session, ct).ConfigureAwait(false);
             if (updated == null)
                 updated = session;
             if (CurrentSession != null && CurrentSession.Id == updated.Id)
@@ -100,14 +100,14 @@ namespace Taiji.Core.Modules
             string newName,
             CancellationToken ct)
         {
-            if (session == null) throw new ArgumentNullException("session");
+            if (session == null) throw new ArgumentNullException(nameof(session));
             session.Name = newName ?? "";
             return UpdateSessionAsync(session, ct);
         }
 
         public async Task DeleteSessionAsync(long sessionId, CancellationToken ct)
         {
-            await _http.DeleteAsync("/chat/session/" + sessionId, ct).ConfigureAwait(false);
+            await _http.DeleteAsync($"/chat/session/{sessionId}", ct).ConfigureAwait(false);
             if (CurrentSession != null && CurrentSession.Id == sessionId)
                 CurrentSession = null;
         }
@@ -118,7 +118,7 @@ namespace Taiji.Core.Modules
             CancellationToken ct)
         {
             if (page < 1) page = 1;
-            var path = "/chat/record/" + sessionId + "?page=" + page;
+            var path = $"/chat/record/{sessionId}?page={page}";
             var pageResult = await _http.GetDataAsync<PageResult<ChatRecord>>(path, ct)
                 .ConfigureAwait(false);
             if (pageResult == null)

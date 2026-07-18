@@ -1,5 +1,7 @@
 using System;
+using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Threading;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -40,29 +42,30 @@ namespace Taiji.Engine.Latex
         private WriteableBitmap _bitmap;
         private double _bitmapWidth;
         private double _bitmapHeight;
+        private int _layoutVersion;
 
         public string Latex
         {
-            get { return (string)GetValue(LatexProperty); }
-            set { SetValue(LatexProperty, value); }
+            get => (string)GetValue(LatexProperty);
+            set => SetValue(LatexProperty, value);
         }
 
         public bool DisplayMode
         {
-            get { return (bool)GetValue(DisplayModeProperty); }
-            set { SetValue(DisplayModeProperty, value); }
+            get => (bool)GetValue(DisplayModeProperty);
+            set => SetValue(DisplayModeProperty, value);
         }
 
         public double FontSizeEm
         {
-            get { return (double)GetValue(FontSizeEmProperty); }
-            set { SetValue(FontSizeEmProperty, value); }
+            get => (double)GetValue(FontSizeEmProperty);
+            set => SetValue(FontSizeEmProperty, value);
         }
 
         public string Error
         {
-            get { return (string)GetValue(ErrorProperty); }
-            private set { SetValue(ErrorProperty, value); }
+            get => (string)GetValue(ErrorProperty);
+            private set => SetValue(ErrorProperty, value);
         }
 
         public RatexFormulaView()
@@ -135,6 +138,7 @@ namespace Taiji.Engine.Latex
 
         private void RebuildLayout()
         {
+            var version = ++_layoutVersion;
             _bitmap = null;
             _bitmapWidth = 0;
             _bitmapHeight = 0;
@@ -148,23 +152,63 @@ namespace Taiji.Engine.Latex
                 return;
             }
 
+            var dip = VisualTreeHelper.GetDpi(this).PixelsPerDip;
+            var fontSizeEm = FontSizeEm;
+            var displayMode = DisplayMode;
+            var options = LatexRenderOptions.ForScreen(fontSizeEm, dip, displayMode);
+            var engine = LatexEngine.Default as RatexLatexEngine ?? new RatexLatexEngine();
+
+            Task.Run(() => engine.RenderPixelBuffer(latex, options))
+                .ContinueWith(t =>
+                {
+                    if (version != _layoutVersion) return;
+
+                    LatexPixelBuffer pixels;
+                    try
+                    {
+                        pixels = t.IsFaulted
+                            ? LatexPixelBuffer.Fail(t.Exception?.GetBaseException().Message ?? "渲染失败")
+                            : t.Result;
+                    }
+                    catch (Exception ex)
+                    {
+                        pixels = LatexPixelBuffer.Fail(ex.Message);
+                    }
+
+                    Dispatcher.BeginInvoke(new Action(() => ApplyPixelBuffer(version, pixels)), DispatcherPriority.Background);
+                });
+        }
+
+        private void ApplyPixelBuffer(int version, LatexPixelBuffer pixels)
+        {
+            if (version != _layoutVersion) return;
+
+            _bitmap = null;
+            _bitmapWidth = 0;
+            _bitmapHeight = 0;
+            Error = null;
+
+            if (!pixels.Success)
+            {
+                if (!string.IsNullOrEmpty(pixels.Error))
+                    Error = pixels.Error;
+                InvalidateVisual();
+                InvalidateMeasure();
+                return;
+            }
+
+            if (pixels.Pbgra == null)
+            {
+                InvalidateVisual();
+                InvalidateMeasure();
+                return;
+            }
+
             try
             {
-                var dip = VisualTreeHelper.GetDpi(this).PixelsPerDip;
-                var options = LatexRenderOptions.ForScreen(FontSizeEm, dip, DisplayMode);
-                var result = LatexEngine.Default.RenderBitmap(latex, options);
-
-                if (!result.Success)
-                {
-                    Error = result.Error;
-                    InvalidateVisual();
-                    InvalidateMeasure();
-                    return;
-                }
-
-                _bitmap = result.Bitmap;
-                _bitmapWidth = result.Width;
-                _bitmapHeight = result.Height;
+                _bitmap = RatexBitmapHelper.ToWriteableBitmap(pixels);
+                _bitmapWidth = pixels.LayoutWidth;
+                _bitmapHeight = pixels.LayoutHeight;
             }
             catch (Exception ex)
             {

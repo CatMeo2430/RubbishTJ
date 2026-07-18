@@ -24,7 +24,7 @@ namespace Taiji.Proxy
         public static RequestLog Begin(HttpListenerRequest req, string path, long? sessionId = null)
         {
             var id = Guid.NewGuid().ToString("N").Substring(0, 8);
-            var log = new RequestLog
+            return new RequestLog
             {
                 Id = id,
                 StartUtc = DateTime.UtcNow,
@@ -34,13 +34,9 @@ namespace Taiji.Proxy
                 ClientIp = FormatClient(req),
                 UserAgent = Truncate(req.UserAgent, 120)
             };
-            return log;
         }
 
-        public long ElapsedMs()
-        {
-            return (long)(DateTime.UtcNow - StartUtc).TotalMilliseconds;
-        }
+        public long ElapsedMs() => (long)(DateTime.UtcNow - StartUtc).TotalMilliseconds;
 
         private static string FormatClient(HttpListenerRequest req)
         {
@@ -54,7 +50,7 @@ namespace Taiji.Proxy
         {
             if (string.IsNullOrEmpty(s)) return "";
             s = s.Replace("\r", " ").Replace("\n", " ");
-            return s.Length <= max ? s : s.Substring(0, max) + "…";
+            return s.Length <= max ? s : $"{s.Substring(0, max)}…";
         }
     }
 
@@ -62,71 +58,33 @@ namespace Taiji.Proxy
     {
         private static readonly object Gate = new object();
 
-        public static void Info(string message)
-        {
-            Write(ProxyLogLevel.Info, message);
-        }
+        public static void Info(string message) => Write(ProxyLogLevel.Info, message);
 
-        public static void Warn(string message)
-        {
-            Write(ProxyLogLevel.Warn, message);
-        }
+        public static void Warn(string message) => Write(ProxyLogLevel.Warn, message);
 
-        public static void Error(string message)
-        {
-            Write(ProxyLogLevel.Error, message);
-        }
+        public static void Error(string message) => Write(ProxyLogLevel.Error, message);
 
         public static void RequestStart(RequestLog log, string detail)
         {
             var sb = new StringBuilder();
-            sb.Append("--> ");
-            sb.Append(log.Method);
-            sb.Append(" ");
-            sb.Append(log.Path);
-            sb.Append(" from ");
-            sb.Append(log.ClientIp);
+            sb.Append($"--> {log.Method} {log.Path} from {log.ClientIp}");
             if (log.SessionId.HasValue)
-            {
-                sb.Append(" session=");
-                sb.Append(log.SessionId.Value);
-            }
+                sb.Append($" session={log.SessionId.Value}");
             if (!string.IsNullOrEmpty(log.UserAgent))
-            {
-                sb.Append(" ua=\"");
-                sb.Append(log.UserAgent);
-                sb.Append("\"");
-            }
+                sb.Append($" ua=\"{log.UserAgent}\"");
             if (!string.IsNullOrEmpty(detail))
-            {
-                sb.Append(" ");
-                sb.Append(detail);
-            }
+                sb.Append($" {detail}");
             Write(ProxyLogLevel.Info, sb.ToString(), log.Id);
         }
 
         public static void RequestEnd(RequestLog log, int status, string detail)
         {
             var sb = new StringBuilder();
-            sb.Append("<-- ");
-            sb.Append(status);
-            sb.Append(" ");
-            sb.Append(log.Method);
-            sb.Append(" ");
-            sb.Append(log.Path);
-            sb.Append(" ");
-            sb.Append(log.ElapsedMs());
-            sb.Append("ms");
+            sb.Append($"<-- {status} {log.Method} {log.Path} {log.ElapsedMs()}ms");
             if (log.SessionId.HasValue)
-            {
-                sb.Append(" session=");
-                sb.Append(log.SessionId.Value);
-            }
+                sb.Append($" session={log.SessionId.Value}");
             if (!string.IsNullOrEmpty(detail))
-            {
-                sb.Append(" ");
-                sb.Append(detail);
-            }
+                sb.Append($" {detail}");
             var level = status >= 500 ? ProxyLogLevel.Error : status >= 400 ? ProxyLogLevel.Warn : ProxyLogLevel.Info;
             Write(level, sb.ToString(), log.Id);
         }
@@ -135,17 +93,17 @@ namespace Taiji.Proxy
         {
             if (string.IsNullOrEmpty(text)) return "\"\"";
             var s = text.Replace("\r", " ").Replace("\n", " ");
-            if (s.Length > max) s = s.Substring(0, max) + "…";
-            return "\"" + s + "\"";
+            if (s.Length > max) s = $"{s.Substring(0, max)}…";
+            return $"\"{s}\"";
         }
 
         private static void Write(ProxyLogLevel level, string message, string requestId = null)
         {
             var ts = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
-            var line = ts + " [" + level.ToString().ToUpperInvariant() + "]";
+            var line = $"{ts} [{level.ToString().ToUpperInvariant()}]";
             if (!string.IsNullOrEmpty(requestId))
-                line += " [" + requestId + "]";
-            line += " " + message;
+                line += $" [{requestId}]";
+            line += $" {message}";
             lock (Gate)
             {
                 if (level == ProxyLogLevel.Error)

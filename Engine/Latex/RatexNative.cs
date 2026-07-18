@@ -427,7 +427,7 @@ namespace Taiji.Engine.Latex
         private static string GetLastError(string fallback)
         {
             var err = PtrToUtf8(ratex_get_last_error());
-            return string.IsNullOrEmpty(err) ? fallback + " 失败" : err;
+            return string.IsNullOrEmpty(err) ? $"{fallback} 失败" : err;
         }
 
         private static string PtrToUtf8(IntPtr ptr)

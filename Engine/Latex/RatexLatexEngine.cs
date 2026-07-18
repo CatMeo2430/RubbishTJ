@@ -6,19 +6,33 @@ namespace Taiji.Engine.Latex
     /// <summary>基于 ratex_ffi.dll 的默认 LaTeX 渲染引擎。</summary>
     public sealed class RatexLatexEngine : ILatexRenderEngine
     {
-        public bool IsAvailable
-        {
-            get { return RatexNative.IsLibraryAvailable(); }
-        }
+        public bool IsAvailable => RatexNative.IsLibraryAvailable();
 
         public LatexBitmapResult RenderBitmap(string latex, LatexRenderOptions options)
         {
+            var pixels = RenderPixelBuffer(latex, options);
+            if (!pixels.Success)
+                return string.IsNullOrEmpty(pixels.Error) ? LatexBitmapResult.Empty() : LatexBitmapResult.Fail(pixels.Error);
+
+            if (pixels.Pbgra == null)
+                return LatexBitmapResult.Empty();
+
+            var wb = RatexBitmapHelper.ToWriteableBitmap(pixels);
+            if (wb == null)
+                return LatexBitmapResult.Fail("位图转换失败");
+
+            return LatexBitmapResult.Ok(wb, pixels.LayoutWidth, pixels.LayoutHeight);
+        }
+
+        /// <summary>在后台线程调用：FFI 渲染 + 像素转换，不创建 WPF 位图。</summary>
+        internal LatexPixelBuffer RenderPixelBuffer(string latex, LatexRenderOptions options)
+        {
             if (options == null)
-                return LatexBitmapResult.Fail("LatexRenderOptions 为空");
+                return LatexPixelBuffer.Fail("LatexRenderOptions 为空");
 
             var cleaned = LatexNormalizer.CleanFormula(latex);
             if (string.IsNullOrWhiteSpace(cleaned))
-                return LatexBitmapResult.Empty();
+                return new LatexPixelBuffer();
 
             RatexNative.RatexBitmapNative? nativeBitmap = null;
             try
@@ -27,24 +41,32 @@ namespace Taiji.Engine.Latex
                 nativeBitmap = RatexNative.RenderBitmap(cleaned, options, out err);
 
                 if (!nativeBitmap.HasValue)
-                    return LatexBitmapResult.Fail(err);
+                    return LatexPixelBuffer.Fail(err);
 
                 var bmp = nativeBitmap.Value;
                 var dpr = options.DevicePixelRatio > 0 ? options.DevicePixelRatio : 1f;
                 var dpi = 96.0 * dpr;
-                var wb = RatexBitmapHelper.ToWriteableBitmap(bmp, dpi);
-                if (wb == null)
-                    return LatexBitmapResult.Fail("位图转换失败");
+                var pbgra = RatexBitmapHelper.ConvertRgbaToPbgra(bmp);
+                if (pbgra == null)
+                    return LatexPixelBuffer.Fail("位图转换失败");
 
-                return LatexBitmapResult.Ok(wb, (double)bmp.Width / dpr, (double)bmp.Height / dpr);
+                return new LatexPixelBuffer
+                {
+                    Pbgra = pbgra,
+                    Width = (int)bmp.Width,
+                    Height = (int)bmp.Height,
+                    Dpi = dpi,
+                    LayoutWidth = (double)bmp.Width / dpr,
+                    LayoutHeight = (double)bmp.Height / dpr
+                };
             }
             catch (DllNotFoundException)
             {
-                return LatexBitmapResult.Fail("未找到 ratex_ffi.dll");
+                return LatexPixelBuffer.Fail("未找到 ratex_ffi.dll");
             }
             catch (Exception ex)
             {
-                return LatexBitmapResult.Fail(ex.Message);
+                return LatexPixelBuffer.Fail(ex.Message);
             }
             finally
             {

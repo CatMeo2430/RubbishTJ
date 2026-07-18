@@ -23,13 +23,12 @@ namespace Taiji.GUI
 
         public string Preview
         {
-            get { return _preview; }
+            get => _preview;
             set
             {
                 if (_preview == value) return;
                 _preview = value ?? "";
-                var h = PropertyChanged;
-                if (h != null) h(this, new PropertyChangedEventArgs("Preview"));
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Preview)));
             }
         }
 

@@ -13,9 +13,9 @@ namespace Taiji.Engine.Markdown
     {
         private readonly MarkdigFlowConverter _converter = new MarkdigFlowConverter();
 
-        public string Id { get { return "markdown"; } }
-        public string DisplayName { get { return "Markdown (Markdig)"; } }
-        public int Priority { get { return 10; } }
+        public string Id => "markdown";
+        public string DisplayName => "Markdown (Markdig)";
+        public int Priority => 10;
 
         public bool CanHandle(RenderRequest request)
         {
@@ -51,7 +51,7 @@ namespace Taiji.Engine.Markdown
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("[Render] WARN: Markdig 渲染失败: " + ex.Message);
+                Debug.WriteLine($"[Render] WARN: Markdig 渲染失败: {ex.Message}");
                 return new List<Block>
                 {
                     new Paragraph(new Run(text ?? "")
@@ -71,7 +71,7 @@ namespace Taiji.Engine.Markdown
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("[Render] WARN: Markdig 渲染失败: " + ex.Message);
+                Debug.WriteLine($"[Render] WARN: Markdig 渲染失败: {ex.Message}");
                 return new List<Block>
                 {
                     new Paragraph(new Run(text ?? "")

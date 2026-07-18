@@ -61,14 +61,14 @@ namespace Taiji.Core.Utils
             _http.Dispose();
         }
 
-        public async Task<T> GetDataAsync<T>(string path, CancellationToken ct = default(CancellationToken))
+        public async Task<T> GetDataAsync<T>(string path, CancellationToken ct = default)
         {
             return await ExecuteWithAuthRetryAsync(
                 () => GetDataCoreAsync<T>(path, ct),
                 ct).ConfigureAwait(false);
         }
 
-        public async Task<T> PostDataAsync<T>(string path, object body, bool auth = true, CancellationToken ct = default(CancellationToken))
+        public async Task<T> PostDataAsync<T>(string path, object body, bool auth = true, CancellationToken ct = default)
         {
             return await ExecuteWithAuthRetryAsync(
                 () => PostDataCoreAsync<T>(path, body, auth, ct),
@@ -76,21 +76,21 @@ namespace Taiji.Core.Utils
                 auth).ConfigureAwait(false);
         }
 
-        public async Task<T> PutDataAsync<T>(string path, object body, CancellationToken ct = default(CancellationToken))
+        public async Task<T> PutDataAsync<T>(string path, object body, CancellationToken ct = default)
         {
             return await ExecuteWithAuthRetryAsync(
                 () => PutDataCoreAsync<T>(path, body, ct),
                 ct).ConfigureAwait(false);
         }
 
-        public async Task DeleteAsync(string path, CancellationToken ct = default(CancellationToken))
+        public async Task DeleteAsync(string path, CancellationToken ct = default)
         {
             await ExecuteWithAuthRetryAsync(
                 () => DeleteCoreAsync(path, ct),
                 ct).ConfigureAwait(false);
         }
 
-        public async Task<HttpResponseMessage> PostStreamAsync(string path, object body, CancellationToken ct = default(CancellationToken))
+        public async Task<HttpResponseMessage> PostStreamAsync(string path, object body, CancellationToken ct = default)
         {
             var resp = await PostStreamCoreAsync(path, body, ct).ConfigureAwait(false);
             if (!NeedsAuthRetry(resp))
@@ -249,7 +249,7 @@ namespace Taiji.Core.Utils
         {
             var url = path.StartsWith("http", StringComparison.OrdinalIgnoreCase)
                 ? path
-                : _baseUrl + (path.StartsWith("/") ? path : "/" + path);
+                : $"{_baseUrl}{(path.StartsWith("/") ? path : $"/{path}")}";
             var req = new HttpRequestMessage(method, url);
             req.Headers.TryAddWithoutValidation("Accept", "application/json, text/plain, */*");
             req.Headers.TryAddWithoutValidation("X-APP-VERSION", AppVersion);
@@ -276,8 +276,7 @@ namespace Taiji.Core.Utils
             }
             catch (Exception ex)
             {
-                throw new ApiException("非 JSON 响应 HTTP " + (int)resp.StatusCode + ": " +
-                    (text != null && text.Length > 200 ? text.Substring(0, 200) : text), ex);
+                throw new ApiException($"非 JSON 响应 HTTP {(int)resp.StatusCode}: {(text != null && text.Length > 200 ? text.Substring(0, 200) : text)}", ex);
             }
 
             if (env == null)
@@ -287,7 +286,7 @@ namespace Taiji.Core.Utils
                 throw new ApiException(env.Msg ?? "登录已过期", 2);
 
             if (env.Code != 0)
-                throw new ApiException(env.Msg ?? ("业务错误 code=" + env.Code), env.Code);
+                throw new ApiException(env.Msg ?? $"业务错误 code={env.Code}", env.Code);
 
             return env.Data;
         }
@@ -301,8 +300,8 @@ namespace Taiji.Core.Utils
             Action<string> onDataLine,
             CancellationToken ct)
         {
-            if (stream == null) throw new ArgumentNullException("stream");
-            if (onDataLine == null) throw new ArgumentNullException("onDataLine");
+            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            if (onDataLine == null) throw new ArgumentNullException(nameof(onDataLine));
 
             var buf = new byte[256];
             var lineBuf = new MemoryStream(512);

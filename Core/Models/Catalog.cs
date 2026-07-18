@@ -44,40 +44,19 @@ namespace Taiji.Core.Models
         [JsonProperty("attr")]
         public ModelAttr Attr { get; set; }
 
-        public string ProviderName
-        {
-            get { return Attr != null ? Attr.ProviderName : null; }
-        }
+        public string ProviderName => Attr != null ? Attr.ProviderName : null;
 
-        public string Integral
-        {
-            get { return Attr != null ? Attr.Integral : null; }
-        }
+        public string Integral => Attr != null ? Attr.Integral : null;
 
-        public bool ImageInput
-        {
-            get { return Attr != null && Attr.Capabilities != null && Attr.Capabilities.ImageInput; }
-        }
+        public bool ImageInput => Attr != null && Attr.Capabilities != null && Attr.Capabilities.ImageInput;
 
-        public string NameText
-        {
-            get { return !string.IsNullOrEmpty(Label) ? Label : (Value ?? ""); }
-        }
+        public string NameText => !string.IsNullOrEmpty(Label) ? Label : (Value ?? "");
 
-        public string PointsText
-        {
-            get { return !string.IsNullOrEmpty(Integral) ? Integral : "?"; }
-        }
+        public string PointsText => !string.IsNullOrEmpty(Integral) ? Integral : "?";
 
-        public string ModeText
-        {
-            get { return ImageInput ? "图像多模态" : "纯文本"; }
-        }
+        public string ModeText => ImageInput ? "图像多模态" : "纯文本";
 
-        public string DisplayLabel
-        {
-            get { return NameText + "  ·  " + PointsText + "  ·  " + ModeText; }
-        }
+        public string DisplayLabel => $"{NameText}  ·  {PointsText}  ·  {ModeText}";
 
         public override string ToString()
         {

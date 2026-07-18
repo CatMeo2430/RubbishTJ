@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -47,7 +48,7 @@ namespace Taiji.GUI
         private int _sseChunkCount;
 
         private readonly object _chunkLock = new object();
-        private string _smoothQueue = "";
+        private readonly StringBuilder _smoothQueue = new StringBuilder();
         private readonly DispatcherTimer _smoothTimer;
         private bool _streamEnded;
 
@@ -68,7 +69,7 @@ namespace Taiji.GUI
             OutlineList.ItemsSource = _outline;
             SessionList.AddHandler(ScrollViewer.ScrollChangedEvent,
                 new ScrollChangedEventHandler(SessionList_OnScrollChanged), true);
-            Title = "Taiji  ·  " + Constant.AppVersion;
+            Title = $"Taiji  ·  {Constant.AppVersion}";
             ChatBox.Document.Blocks.Clear();
             ChatBox.SizeChanged += ChatBox_OnSizeChanged;
             ChatBox.Loaded += (s, e) =>
@@ -109,7 +110,7 @@ namespace Taiji.GUI
             {
                 _hideTimer.Stop();
                 _smoothTimer.Stop();
-                if (_cts != null) _cts.Cancel();
+                _cts?.Cancel();
                 _api.Dispose();
             };
         }
@@ -123,7 +124,7 @@ namespace Taiji.GUI
                 var nick = login.User != null && !string.IsNullOrEmpty(login.User.Nickname)
                     ? login.User.Nickname
                     : (login.User != null ? login.User.Id.ToString() : "用户");
-                AppendSys("已登录: " + nick);
+                AppendSys($"已登录: {nick}");
 
                 SetStatus("拉取历史会话…");
                 await ResetSessionsToFirstPageAsync(null).ConfigureAwait(true);
@@ -305,8 +306,7 @@ namespace Taiji.GUI
             if (current is Visual)
                 return VisualTreeHelper.GetParent(current);
 
-            var fce = current as FrameworkContentElement;
-            if (fce != null)
+            if (current is FrameworkContentElement fce)
                 return fce.Parent;
 
             return LogicalTreeHelper.GetParent(current);
@@ -528,7 +528,7 @@ namespace Taiji.GUI
             return item;
         }
 
-        private void RebuildOutline(IList<Tuple<RenderRole, string>> messages, FlowDocument doc)
+        private void RebuildOutline(IList<(RenderRole role, string content)> messages, FlowDocument doc)
         {
             ClearOutline();
             if (messages == null || doc == null) return;
@@ -536,9 +536,9 @@ namespace Taiji.GUI
             var n = Math.Min(messages.Count, blocks.Count);
             for (var i = 0; i < n; i++)
             {
-                var role = messages[i].Item1;
+                var (role, content) = messages[i];
                 if (role != RenderRole.User && role != RenderRole.Ai) continue;
-                AddOutline(role, messages[i].Item2, blocks[i]);
+                AddOutline(role, content, blocks[i]);
             }
         }
 
@@ -547,15 +547,14 @@ namespace Taiji.GUI
             if (string.IsNullOrEmpty(text)) return "…";
             var one = text.Replace("\r", " ").Replace("\n", " ").Trim();
             while (one.Contains("  ")) one = one.Replace("  ", " ");
-            if (one.Length > 36) return one.Substring(0, 36) + "…";
+            if (one.Length > 36) return $"{one.Substring(0, 36)}…";
             return one;
         }
 
         private void OutlineList_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (_suppressOutlineSelect) return;
-            var item = OutlineList.SelectedItem as OutlineItem;
-            if (item == null || item.Anchor == null) return;
+            if (!(OutlineList.SelectedItem is OutlineItem item) || item.Anchor == null) return;
             JumpToBlock(item.Anchor);
             ScheduleHide(EdgePanel.Left);
         }
@@ -564,8 +563,7 @@ namespace Taiji.GUI
         {
             try
             {
-                var fce = block as FrameworkContentElement;
-                if (fce != null)
+                if (block is FrameworkContentElement fce)
                 {
                     fce.BringIntoView();
                     return;
@@ -603,7 +601,7 @@ namespace Taiji.GUI
             try
             {
                 var next = _sessionPageLoaded + 1;
-                SetStatus("加载会话第 " + next + " 页…");
+                SetStatus($"加载会话第 {next} 页…");
                 var page = await _api.ListSessionsPageAsync(next).ConfigureAwait(true);
                 _sessionTotalPages = page.Pages > 0 ? page.Pages : 1;
                 _sessionPageLoaded = page.Page > 0 ? page.Page : next;
@@ -619,8 +617,7 @@ namespace Taiji.GUI
                     _suppressSessionSelect = false;
                 }
 
-                SetStatus("会话 " + _sessions.Count + " 条 · 第 " +
-                    _sessionPageLoaded + "/" + _sessionTotalPages + " 页");
+                SetStatus($"会话 {_sessions.Count} 条 · 第 {_sessionPageLoaded}/{_sessionTotalPages} 页");
             }
             finally
             {
@@ -675,8 +672,7 @@ namespace Taiji.GUI
             if (e.VerticalChange <= 0) return;
             if (e.ExtentHeightChange != 0) return;
 
-            var sv = e.OriginalSource as ScrollViewer;
-            if (sv == null) return;
+            if (!(e.OriginalSource is ScrollViewer sv)) return;
             if (sv.ScrollableHeight <= 0) return;
             if (sv.VerticalOffset < sv.ScrollableHeight - 48) return;
             if (_sessionPageLoaded >= _sessionTotalPages) return;
@@ -686,7 +682,7 @@ namespace Taiji.GUI
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("加载更多会话失败: " + ex.Message);
+                Debug.WriteLine($"加载更多会话失败: {ex.Message}");
             }
         }
 
@@ -714,8 +710,7 @@ namespace Taiji.GUI
             var dep = e.OriginalSource as DependencyObject;
             while (dep != null && !(dep is ListBoxItem))
                 dep = GetParentObject(dep);
-            var item = dep as ListBoxItem;
-            if (item == null) return;
+            if (!(dep is ListBoxItem item)) return;
             _hideTimer.Stop();
             _suppressSessionSelect = true;
             try { item.IsSelected = true; }
@@ -725,8 +720,7 @@ namespace Taiji.GUI
 
         private async void MenuRename_OnClick(object sender, RoutedEventArgs e)
         {
-            var session = SessionList.SelectedItem as ChatSessionInfo;
-            if (session == null) return;
+            if (!(SessionList.SelectedItem is ChatSessionInfo session)) return;
             var name = PromptText("改名", "会话名称：", session.Name ?? "");
             if (name == null) return;
             name = name.Trim();
@@ -755,7 +749,7 @@ namespace Taiji.GUI
                         _suppressSessionSelect = false;
                     }
                 }
-                SetStatus("已改名 #" + final.Id + " → " + final.DisplayName);
+                SetStatus($"已改名 #{final.Id} → {final.DisplayName}");
             }
             catch (Exception ex)
             {
@@ -769,14 +763,13 @@ namespace Taiji.GUI
 
         private async void MenuDelete_OnClick(object sender, RoutedEventArgs e)
         {
-            var session = SessionList.SelectedItem as ChatSessionInfo;
-            if (session == null) return;
+            if (!(SessionList.SelectedItem is ChatSessionInfo session)) return;
             HoldRightPanel();
             MessageBoxResult r;
             try
             {
                 r = MessageBox.Show(
-                    "确定删除会话「" + session.DisplayName + "」(#" + session.Id + ")？",
+                    $"确定删除会话「{session.DisplayName}」(#{session.Id})？",
                     "删除确认",
                     MessageBoxButton.YesNo,
                     MessageBoxImage.Warning);
@@ -808,11 +801,10 @@ namespace Taiji.GUI
                     AppendSys("会话已删除");
                 }
 
-                var next = SessionList.SelectedItem as ChatSessionInfo;
-                if (next != null)
+                if (SessionList.SelectedItem is ChatSessionInfo next)
                     await OpenSessionHistoryAsync(next).ConfigureAwait(true);
 
-                SetStatus("已删除 #" + id);
+                SetStatus($"已删除 #{id}");
             }
             catch (Exception ex)
             {
@@ -898,8 +890,7 @@ namespace Taiji.GUI
         private async void SessionList_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (_suppressSessionSelect || _loadingHistory || _busy) return;
-            var session = SessionList.SelectedItem as ChatSessionInfo;
-            if (session == null) return;
+            if (!(SessionList.SelectedItem is ChatSessionInfo session)) return;
             await OpenSessionHistoryAsync(session).ConfigureAwait(true);
             ScheduleHide(EdgePanel.Right);
         }
@@ -909,7 +900,7 @@ namespace Taiji.GUI
             if (session == null) return;
             var gen = ++_historyLoadGen;
             _loadingHistory = true;
-            SetStatus("加载历史 #" + session.Id + "…");
+            SetStatus($"加载历史 #{session.Id}…");
             try
             {
                 _api.AttachSession(session);
@@ -917,20 +908,21 @@ namespace Taiji.GUI
                 var records = await _api.ListAllRecordsAsync(session.Id).ConfigureAwait(true);
                 if (gen != _historyLoadGen) return;
 
-                var messages = new List<Tuple<RenderRole, string>>();
-                messages.Add(Tuple.Create(RenderRole.System,
-                    "— 会话 #" + session.Id + " · " + session.DisplayName + " · " + session.Model));
+                var messages = new List<(RenderRole role, string content)>
+                {
+                    (RenderRole.System, $"— 会话 #{session.Id} · {session.DisplayName} · {session.Model}")
+                };
                 foreach (var r in records)
                 {
                     if (!string.IsNullOrEmpty(r.UserText))
-                        messages.Add(Tuple.Create(RenderRole.User, r.UserText));
+                        messages.Add((RenderRole.User, r.UserText));
                     if (!string.IsNullOrEmpty(r.AiText))
-                        messages.Add(Tuple.Create(RenderRole.Ai, r.AiText));
+                        messages.Add((RenderRole.Ai, r.AiText));
                 }
                 if (records.Count == 0)
-                    messages.Add(Tuple.Create(RenderRole.System, "（尚无消息）"));
+                    messages.Add((RenderRole.System, "（尚无消息）"));
 
-                var doc = _render.BuildDocument(messages);
+                var doc = await _render.BuildDocumentAsync(messages).ConfigureAwait(true);
                 if (gen != _historyLoadGen) return;
 
                 ChatBox.Document = doc;
@@ -938,7 +930,7 @@ namespace Taiji.GUI
                 SyncChatPageWidth();
                 ScrollChatEnd();
 
-                SetStatus("会话 #" + session.Id + " · " + records.Count + " 轮");
+                SetStatus($"会话 #{session.Id} · {records.Count} 轮");
             }
             catch (Exception ex)
             {
@@ -1014,9 +1006,9 @@ namespace Taiji.GUI
                 var sess = await _api.CreateSessionAsync(model.Value).ConfigureAwait(true);
                 ChatBox.Document.Blocks.Clear();
                 ClearOutline();
-                AppendSys("— 会话 #" + sess.Id + " · " + sess.Model);
+                AppendSys($"— 会话 #{sess.Id} · {sess.Model}");
                 await ResetSessionsToFirstPageAsync(sess.Id).ConfigureAwait(true);
-                SetStatus("会话 #" + sess.Id);
+                SetStatus($"会话 #{sess.Id}");
                 ShowPanel(EdgePanel.Bottom);
             }
             catch (Exception ex)
@@ -1041,7 +1033,7 @@ namespace Taiji.GUI
             var max = _api.ModelTmpl.MFileCount;
             if (_pendingImages.Count >= max)
             {
-                MessageBox.Show("最多 " + max + " 张");
+                MessageBox.Show($"最多 {max} 张");
                 return;
             }
             var dlg = new OpenFileDialog
@@ -1070,14 +1062,13 @@ namespace Taiji.GUI
             if (_pendingImages.Count == 0)
                 AttachText.Text = "未附加图片";
             else
-                AttachText.Text = "已附加 " + _pendingImages.Count + " 张: " +
-                    string.Join(", ", _pendingImages.Select(Path.GetFileName));
+                AttachText.Text = $"已附加 {_pendingImages.Count} 张: {string.Join(", ", _pendingImages.Select(Path.GetFileName))}";
             BtnClearImg.IsEnabled = !_busy && _pendingImages.Count > 0;
         }
 
         private void BtnStop_OnClick(object sender, RoutedEventArgs e)
         {
-            if (_cts != null) _cts.Cancel();
+            _cts?.Cancel();
             SetStatus("正在停止…");
         }
 
@@ -1128,13 +1119,13 @@ namespace Taiji.GUI
             if (images.Count > 0)
             {
                 var names = string.Join(", ", images.Select(Path.GetFileName));
-                shown = text.Length > 0 ? text + "\n[图片: " + names + "]" : "[图片: " + names + "]";
+                shown = text.Length > 0 ? $"{text}\n[图片: {names}]" : $"[图片: {names}]";
             }
             AppendUser(shown);
 
             _sseChunkCount = 0;
             _streamEnded = false;
-            lock (_chunkLock) { _smoothQueue = ""; }
+            lock (_chunkLock) { _smoothQueue.Clear(); }
             SetStatus("SSE 连接中…");
             Exception catchEx = null;
             ChatStreamResult result = null;
@@ -1146,7 +1137,7 @@ namespace Taiji.GUI
                     var sess = await _api.CreateSessionAsync(model.Value, false, token).ConfigureAwait(true);
                     if (sess == null)
                         throw new ApiException("创建会话失败：服务器未返回会话信息");
-                    AppendSys("— 会话 #" + sess.Id + " · " + sess.Model);
+                    AppendSys($"— 会话 #{sess.Id} · {sess.Model}");
                     await ResetSessionsToFirstPageAsync(sess.Id).ConfigureAwait(true);
                 }
 
@@ -1169,7 +1160,7 @@ namespace Taiji.GUI
                 if (result.StreamInterrupted)
                     AppendError("连接已中断，回复可能不完整");
 
-                SetStatus("就绪 · SSE " + result.StringEvents + " events · #" + result.SessionId);
+                SetStatus($"就绪 · SSE {result.StringEvents} events · #{result.SessionId}");
 
                 SoftSyncCurrentSessionInList();
             }
@@ -1215,14 +1206,14 @@ namespace Taiji.GUI
             {
                 var names = string.Join(", ", images.Select(Path.GetFileName));
                 preview = preview.Length > 0
-                    ? preview + "\n[图片: " + names + "]"
-                    : "[图片: " + names + "]";
+                    ? $"{preview}\n[图片: {names}]"
+                    : $"[图片: {names}]";
             }
             if (preview.Length > 1500)
-                preview = preview.Substring(0, 1500) + "…";
+                preview = $"{preview.Substring(0, 1500)}…";
 
             MessageBox.Show(
-                (error ?? "发送失败") + "\n\n以下内容已恢复到输入框：\n" + preview,
+                $"{error ?? "发送失败"}\n\n以下内容已恢复到输入框：\n{preview}",
                 "发送失败",
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
@@ -1233,7 +1224,7 @@ namespace Taiji.GUI
             if (string.IsNullOrEmpty(piece)) return;
             lock (_chunkLock)
             {
-                _smoothQueue = _smoothQueue + piece;
+                _smoothQueue.Append(piece);
             }
             if (!Dispatcher.CheckAccess())
             {
@@ -1267,8 +1258,8 @@ namespace Taiji.GUI
                     take = Math.Max(3, Math.Min(36, _smoothQueue.Length / 10 + 4));
                     take = Math.Min(take, _smoothQueue.Length);
                 }
-                piece = _smoothQueue.Substring(0, take);
-                _smoothQueue = _smoothQueue.Substring(take);
+                piece = _smoothQueue.ToString(0, take);
+                _smoothQueue.Remove(0, take);
                 remain = _smoothQueue.Length;
             }
             AppendAiChunk(piece);
@@ -1288,7 +1279,7 @@ namespace Taiji.GUI
                 SmoothTimer_OnTick(null, EventArgs.Empty);
             }
             _smoothTimer.Stop();
-            lock (_chunkLock) { _smoothQueue = ""; }
+            lock (_chunkLock) { _smoothQueue.Clear(); }
             await EndAiAsync().ConfigureAwait(true);
         }
 
@@ -1312,7 +1303,7 @@ namespace Taiji.GUI
         private void SetStatus(string s)
         {
             if (!string.IsNullOrEmpty(s))
-                Debug.WriteLine("[GUI] " + s);
+                Debug.WriteLine($"[GUI] {s}");
         }
 
         private void Present(Block block, RenderRole role, string sourceText)
@@ -1333,7 +1324,7 @@ namespace Taiji.GUI
         private void BeginAi()
         {
             _streamEnded = false;
-            lock (_chunkLock) { _smoothQueue = ""; }
+            lock (_chunkLock) { _smoothQueue.Clear(); }
             _aiStream = _render.BeginStream(RenderRole.Ai);
             _aiStream.ShowThinking("思考中......");
             ChatBox.Document.Blocks.Add(_aiStream.Section);

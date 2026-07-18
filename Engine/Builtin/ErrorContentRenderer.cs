@@ -8,9 +8,9 @@ namespace Taiji.Engine.Builtin
 {
     internal sealed class ErrorContentRenderer : IContentRenderer
     {
-        public string Id { get { return "error"; } }
-        public string DisplayName { get { return "Error"; } }
-        public int Priority { get { return 0; } }
+        public string Id => "error";
+        public string DisplayName => "Error";
+        public int Priority => 0;
 
         public bool CanHandle(RenderRequest request)
         {

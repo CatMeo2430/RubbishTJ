@@ -119,8 +119,7 @@ namespace Taiji.Engine.Utils
             var walk = from;
             while (walk != null)
             {
-                var rtb = walk as RichTextBox;
-                if (rtb != null)
+                if (walk is RichTextBox rtb)
                 {
                     var doc = rtb.Document;
                     if (doc != null && doc.PageWidth > 0 && !double.IsInfinity(doc.PageWidth))
