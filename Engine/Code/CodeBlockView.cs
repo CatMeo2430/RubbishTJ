@@ -1,8 +1,9 @@
 using System;
 using System.Windows;
 using System.Windows.Controls;
-using Taiji.Engine.Theme;
 using Taiji.Engine.Render;
+using Taiji.Engine.Theme;
+using Taiji.Engine.Utils;
 
 namespace Taiji.Engine.Code
 {
@@ -59,7 +60,13 @@ namespace Taiji.Engine.Code
         {
             try
             {
-                CodeInteractions.PromptExportPng(_editor, CodeLanguage, Window.GetWindow(this));
+                var width = _editor.ActualWidth > 64
+                    ? _editor.ActualWidth
+                    : Math.Max(320, VisualExportHelper.ResolvePageWidth(this) - 48);
+                CodeInteractions.PromptExportPng(
+                    _editor.CreateExportVisual(width),
+                    CodeLanguage,
+                    Window.GetWindow(this));
             }
             catch (Exception ex)
             {

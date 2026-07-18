@@ -1,3 +1,4 @@
+using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -8,6 +9,10 @@ namespace Taiji.Engine.Code
     /// <summary>只读代码块编辑器：支持局部选中与 Ctrl+C 复制。</summary>
     public sealed class CodeBlockEditor : Border
     {
+        private const double MaxDisplayHeight = 420;
+        private const double LineHeight = 17;
+        private const double MinEditorHeight = 48;
+
         public CodeBlockEditor(string code, string language)
         {
             Code = code ?? "";
@@ -19,6 +24,26 @@ namespace Taiji.Engine.Code
         public string Code { get; private set; }
         public string CodeLanguage { get; private set; }
         public TextEditor Editor { get; private set; }
+
+        /// <summary>按完整内容布局，用于 PNG 导出（不受聊天区 420px 高度限制）。</summary>
+        internal FrameworkElement CreateExportVisual(double width)
+        {
+            var exportWidth = width > 64 ? width : 640;
+            var editor = CreateEditor(Code, CodeLanguage, forExport: true);
+            LayoutEditorFullHeight(editor, exportWidth);
+
+            var shell = new Border
+            {
+                Background = Background ?? Theme.DraculaTheme.CurrentLineBrush,
+                Padding = Padding,
+                Child = editor,
+                SnapsToDevicePixels = true
+            };
+            shell.Measure(new Size(exportWidth, double.PositiveInfinity));
+            shell.Arrange(new Rect(0, 0, exportWidth, shell.DesiredSize.Height));
+            shell.UpdateLayout();
+            return shell;
+        }
 
         public void CopySelectionOrAll()
         {
@@ -35,7 +60,7 @@ namespace Taiji.Engine.Code
             Editor.Focus();
         }
 
-        private TextEditor CreateEditor(string code, string language)
+        private TextEditor CreateEditor(string code, string language, bool forExport = false)
         {
             if (code.EndsWith("\r\n")) code = code.Substring(0, code.Length - 2);
             else if (code.EndsWith("\n")) code = code.Substring(0, code.Length - 1);
@@ -44,7 +69,7 @@ namespace Taiji.Engine.Code
             {
                 IsReadOnly = true,
                 IsEnabled = true,
-                Focusable = true,
+                Focusable = !forExport,
                 ShowLineNumbers = true,
                 WordWrap = true,
                 FontFamily = Theme.DraculaTheme.MonoFont,
@@ -68,26 +93,56 @@ namespace Taiji.Engine.Code
             if (def != null)
                 editor.SyntaxHighlighting = OneDarkHighlighting.Apply(def);
 
-            var lines = System.Math.Max(1, editor.LineCount);
-            editor.Height = System.Math.Min(420, System.Math.Max(48, lines * 17 + 16));
+            if (!forExport)
+            {
+                var lines = Math.Max(1, editor.LineCount);
+                editor.Height = Math.Min(MaxDisplayHeight, Math.Max(MinEditorHeight, lines * LineHeight + 16));
+            }
+
             editor.MinWidth = 120;
 
-            editor.CommandBindings.Add(new CommandBinding(
-                ApplicationCommands.Copy,
-                (s, e) => { CopySelectionOrAll(); e.Handled = true; }));
-            editor.CommandBindings.Add(new CommandBinding(
-                ApplicationCommands.SelectAll,
-                (s, e) => { SelectAll(); e.Handled = true; }));
-
-            editor.PreviewMouseDown += (s, e) =>
+            if (!forExport)
             {
-                if (!editor.IsFocused)
-                    editor.Focus();
-            };
+                editor.CommandBindings.Add(new CommandBinding(
+                    ApplicationCommands.Copy,
+                    (s, e) => { CopySelectionOrAll(); e.Handled = true; }));
+                editor.CommandBindings.Add(new CommandBinding(
+                    ApplicationCommands.SelectAll,
+                    (s, e) => { SelectAll(); e.Handled = true; }));
 
-            editor.PreviewMouseWheel += CodeBlockViewFactory.BubbleWheelToChat;
+                editor.PreviewMouseDown += (s, e) =>
+                {
+                    if (!editor.IsFocused)
+                        editor.Focus();
+                };
+
+                editor.PreviewMouseWheel += CodeBlockViewFactory.BubbleWheelToChat;
+            }
 
             return editor;
+        }
+
+        private static void LayoutEditorFullHeight(TextEditor editor, double width)
+        {
+            editor.Width = width;
+            editor.HorizontalAlignment = HorizontalAlignment.Left;
+
+            editor.Measure(new Size(width, double.PositiveInfinity));
+            var probeHeight = Math.Max(MinEditorHeight, editor.DesiredSize.Height);
+            if (double.IsInfinity(probeHeight) || double.IsNaN(probeHeight) || probeHeight <= 0)
+                probeHeight = Math.Max(MinEditorHeight, editor.LineCount * LineHeight + 16);
+
+            editor.Arrange(new Rect(0, 0, width, probeHeight));
+            editor.UpdateLayout();
+
+            var contentHeight = editor.ExtentHeight;
+            if (contentHeight <= 0 || double.IsNaN(contentHeight))
+                contentHeight = Math.Max(MinEditorHeight, editor.LineCount * LineHeight + 16);
+
+            var height = Math.Ceiling(contentHeight + editor.Padding.Top + editor.Padding.Bottom + 4);
+            editor.Height = Math.Max(MinEditorHeight, height);
+            editor.Arrange(new Rect(0, 0, width, editor.Height));
+            editor.UpdateLayout();
         }
 
         private void AttachContextMenu()
