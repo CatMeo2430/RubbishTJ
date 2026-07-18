@@ -75,8 +75,6 @@
     <Compile Include="Builtin\PlainContentRenderer.cs" />
     <Compile Include="Render\RenderToolbar.cs" />
     <Compile Include="MessageBubbleToolbar.cs" />
-    <Compile Include="Utils\ExportDialog.cs" />
-    <Compile Include="Utils\VisualExportHelper.cs" />
     <Compile Include="Code\CodeBlockEditor.cs" />
     <Compile Include="Code\CodeBlockView.cs" />
     <Compile Include="Code\CodeInteractions.cs" />

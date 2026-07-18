@@ -1,17 +1,13 @@
-using System;
 using System.Windows;
 using System.Windows.Controls;
 using Taiji.Engine.Render;
 using Taiji.Engine.Theme;
-using Taiji.Engine.Utils;
 
 namespace Taiji.Engine.Code
 {
-    /// <summary>代码块：编辑器 + 复制 / 导出 PNG 工具栏。</summary>
+    /// <summary>代码块：编辑器 + 复制工具栏。</summary>
     public sealed class CodeBlockView : Border
     {
-        private readonly CodeBlockEditor _editor;
-
         public CodeBlockView(string code, string language)
         {
             Code = code ?? "";
@@ -29,10 +25,9 @@ namespace Taiji.Engine.Code
             var root = new StackPanel();
 
             root.Children.Add(RenderToolbar.CreateBar(
-                RenderToolbar.CreateButton("复制", OnCopyClick),
-                RenderToolbar.CreateButton("导出", OnExportClick)));
+                RenderToolbar.CreateButton("复制", OnCopyClick)));
 
-            _editor = new CodeBlockEditor(Code, CodeLanguage)
+            var editor = new CodeBlockEditor(Code, CodeLanguage)
             {
                 Background = DraculaTheme.CurrentLineBrush,
                 BorderThickness = new Thickness(0),
@@ -40,7 +35,7 @@ namespace Taiji.Engine.Code
                 Margin = new Thickness(0),
                 HorizontalAlignment = HorizontalAlignment.Stretch
             };
-            root.Children.Add(_editor);
+            root.Children.Add(editor);
 
             Child = root;
             PreviewMouseWheel += CodeBlockViewFactory.BubbleWheelToChat;
@@ -54,24 +49,6 @@ namespace Taiji.Engine.Code
         {
             if (string.IsNullOrEmpty(Code)) return;
             CodeInteractions.CopySourceToClipboard(Code);
-        }
-
-        private void OnExportClick(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                var width = _editor.ActualWidth > 64
-                    ? _editor.ActualWidth
-                    : Math.Max(320, VisualExportHelper.ResolvePageWidth(this) - 48);
-                CodeInteractions.PromptExportPng(
-                    _editor.CreateExportVisual(width),
-                    CodeLanguage,
-                    Window.GetWindow(this));
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message, "导出 PNG 失败", MessageBoxButton.OK, MessageBoxImage.Warning);
-            }
         }
     }
 }

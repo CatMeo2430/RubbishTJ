@@ -45,7 +45,7 @@ namespace Taiji.Engine.Markdown
             var text = request != null ? request.Content : "";
             try
             {
-                return _converter.Convert(text, request != null && request.ForExport);
+                return _converter.Convert(text);
             }
             catch (Exception ex)
             {
@@ -65,7 +65,7 @@ namespace Taiji.Engine.Markdown
             var text = request != null ? request.Content : "";
             try
             {
-                return _converter.Convert(document, request != null && request.ForExport);
+                return _converter.Convert(document);
             }
             catch (Exception ex)
             {

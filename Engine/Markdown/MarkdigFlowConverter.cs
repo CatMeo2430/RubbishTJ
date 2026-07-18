@@ -32,17 +32,14 @@ namespace Taiji.Engine.Markdown
     /// <summary>Markdig AST → FlowDocument Blocks（代码 AvalonEdit，公式 RaTeX）。</summary>
     public sealed class MarkdigFlowConverter
     {
-        private bool _forExport;
-
         public static MarkdownDocument ParseDocument(string markdown)
         {
             var normalized = LatexNormalizer.Normalize(markdown ?? "");
             return Markdig.Markdown.Parse(normalized, MarkdownPipelineFactory.Shared);
         }
 
-        public IList<WpfBlock> Convert(MarkdownDocument document, bool forExport = false)
+        public IList<WpfBlock> Convert(MarkdownDocument document)
         {
-            _forExport = forExport;
             var list = new List<WpfBlock>();
             if (document == null) return list;
             foreach (var block in document)
@@ -50,12 +47,11 @@ namespace Taiji.Engine.Markdown
             return list;
         }
 
-        public IList<WpfBlock> Convert(string markdown, bool forExport = false)
+        public IList<WpfBlock> Convert(string markdown)
         {
-            _forExport = forExport;
             var normalized = LatexNormalizer.Normalize(markdown ?? "");
             var doc = Markdig.Markdown.Parse(normalized, MarkdownPipelineFactory.Shared);
-            return Convert(doc, forExport);
+            return Convert(doc);
         }
 
         private void WriteBlock(MarkdownObject block, IList<WpfBlock> output)
@@ -158,7 +154,7 @@ namespace Taiji.Engine.Markdown
                 output.Add(LatexViewFactory.CreateBlock(code));
                 return;
             }
-            output.Add(new WpfBlockUIContainer(CodeBlockViewFactory.Create(code, lang, _forExport))
+            output.Add(new WpfBlockUIContainer(CodeBlockViewFactory.Create(code, lang))
             {
                 Margin = new Thickness(0, 4, 0, 4)
             });
@@ -172,7 +168,7 @@ namespace Taiji.Engine.Markdown
                 output.Add(LatexViewFactory.CreateBlock(code));
                 return;
             }
-            output.Add(new WpfBlockUIContainer(CodeBlockViewFactory.Create(code, "", _forExport))
+            output.Add(new WpfBlockUIContainer(CodeBlockViewFactory.Create(code, ""))
             {
                 Margin = new Thickness(0, 4, 0, 4)
             });
