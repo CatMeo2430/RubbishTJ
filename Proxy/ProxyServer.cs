@@ -73,7 +73,12 @@ namespace Taiji.Proxy
                     continue;
                 }
 
-                _ = Task.Run(() => HandleRequestAsync(ctx));
+                _ = Task.Run(() => HandleRequestAsync(ctx))
+                    .ContinueWith(t =>
+                    {
+                        if (t.IsFaulted && t.Exception != null)
+                            ProxyLog.Error($"请求任务异常: {t.Exception.GetBaseException().Message}");
+                    }, TaskContinuationOptions.OnlyOnFaulted);
             }
         }
 

@@ -43,7 +43,7 @@ namespace Taiji.Core.Utils
 
             var handler = new WebRequestHandler
             {
-                AutomaticDecompression = DecompressionMethods.None
+                AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
             };
 
             _http = new HttpClient(handler);
@@ -171,17 +171,21 @@ namespace Taiji.Core.Utils
 
         private async Task<HttpResponseMessage> PostStreamCoreAsync(string path, object body, CancellationToken ct)
         {
-            var req = CreateRequest(HttpMethod.Post, path, true);
-            req.Headers.Accept.Clear();
-            req.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/event-stream"));
-            req.Headers.TryAddWithoutValidation("Cache-Control", "no-cache");
-            req.Headers.ConnectionClose = false;
+            using (var cts = CancellationTokenSource.CreateLinkedTokenSource(ct))
+            {
+                cts.CancelAfter(TimeSpan.FromMinutes(2));
+                var req = CreateRequest(HttpMethod.Post, path, true);
+                req.Headers.Accept.Clear();
+                req.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/event-stream"));
+                req.Headers.TryAddWithoutValidation("Cache-Control", "no-cache");
+                req.Headers.ConnectionClose = false;
 
-            var json = JsonConvert.SerializeObject(body);
-            req.Content = new StringContent(json, Encoding.UTF8, "application/json");
+                var json = JsonConvert.SerializeObject(body);
+                req.Content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            return await _http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, ct)
-                .ConfigureAwait(false);
+                return await _http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, cts.Token)
+                    .ConfigureAwait(false);
+            }
         }
 
         private async Task<T> ExecuteWithAuthRetryAsync<T>(

@@ -11,11 +11,11 @@
 ## P1 — 安全 / 稳定性
 
 - [ ] **凭据加密**：`CredentialStore` 明文 JSON；Proxy `App.config` 密码 → DPAPI 或仅存 token
-- [ ] **Markdown 轻量路由**：`MarkdownContentRenderer.CanHandle` 对纯文本跳过全量 Markdig
-- [ ] **流式滚动节流**：`ScrollChatEnd` 不必每 chunk 调用
-- [ ] **HTTP 开启解压**：`Http.cs` `AutomaticDecompression = None` 可能导致 gzip 响应失败
-- [ ] **SSE 超时**：`PostStreamCoreAsync` 补 `CancelAfter`（普通请求已有 2 分钟）
-- [ ] **Proxy 异常捕获**：`Task.Run(() => HandleRequestAsync)` fire-and-forget 需记录未观察异常
+- [x] **Markdown 轻量路由**：`MarkdownContentRenderer.CanHandle` 对纯文本跳过全量 Markdig
+- [x] **流式滚动节流**：`ScrollChatEnd` 不必每 chunk 调用
+- [x] **HTTP 开启解压**：`Http.cs` `AutomaticDecompression = None` 可能导致 gzip 响应失败
+- [x] **SSE 超时**：`PostStreamCoreAsync` 补 `CancelAfter`（普通请求已有 2 分钟）
+- [x] **Proxy 异常捕获**：`Task.Run(() => HandleRequestAsync)` fire-and-forget 需记录未观察异常
 
 ## P2 — 减体积 / 删冗余
 

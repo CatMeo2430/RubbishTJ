@@ -27,8 +27,6 @@ namespace Taiji.Engine.Markdown
             if (string.Equals(request.LanguageHint, "markdown", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(request.LanguageHint, "md", StringComparison.OrdinalIgnoreCase))
                 return true;
-            if (request.Role == RenderRole.User || request.Role == RenderRole.Ai)
-                return true;
 
             var t = request.Content;
             if (string.IsNullOrEmpty(t)) return false;

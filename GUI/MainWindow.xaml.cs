@@ -51,6 +51,7 @@ namespace Taiji.GUI
         private readonly StringBuilder _smoothQueue = new StringBuilder();
         private readonly DispatcherTimer _smoothTimer;
         private bool _streamEnded;
+        private bool _scrollChatEndQueued;
 
         private EdgePanel _openPanel = EdgePanel.None;
         private readonly DispatcherTimer _hideTimer;
@@ -1338,7 +1339,7 @@ namespace Taiji.GUI
             _aiStream.Append(piece);
             if (_streamingOutline != null && (_sseChunkCount % 4) == 0)
                 _streamingOutline.Preview = MakeSnippet(_aiStream.Buffer);
-            ScrollChatEnd();
+            RequestScrollChatEnd();
         }
 
         private async Task EndAiAsync()
@@ -1374,6 +1375,17 @@ namespace Taiji.GUI
                 return;
             }
             ChatBox.ScrollToEnd();
+        }
+
+        private void RequestScrollChatEnd()
+        {
+            if (_scrollChatEndQueued) return;
+            _scrollChatEndQueued = true;
+            Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
+            {
+                _scrollChatEndQueued = false;
+                ScrollChatEnd();
+            }));
         }
     }
 }
