@@ -73,7 +73,7 @@ namespace Taiji.Proxy
                     continue;
                 }
 
-                Task.Run(() => HandleRequestAsync(ctx));
+                _ = Task.Run(() => HandleRequestAsync(ctx));
             }
         }
 
@@ -560,10 +560,11 @@ namespace Taiji.Proxy
                 WriteSseChunk(stream, enc, completionId, model, null, "stop");
                 if (result.StreamInterrupted)
                 {
-                    var warn = enc.GetBytes($"data: {JsonConvert.SerializeObject(new
+                    var warnJson = JsonConvert.SerializeObject(new
                     {
                         error = new { message = "连接已中断，回复可能不完整", type = "stream_interrupted" }
-                    })}\n\n");
+                    });
+                    var warn = enc.GetBytes($"data: {warnJson}\n\n");
                     stream.Write(warn, 0, warn.Length);
                 }
 
@@ -573,10 +574,11 @@ namespace Taiji.Proxy
             catch (ApiException ex)
             {
                 errorMsg = ex.Message;
-                var err = enc.GetBytes($"data: {JsonConvert.SerializeObject(new
+                var errJson = JsonConvert.SerializeObject(new
                 {
                     error = new { message = ex.Message, type = "api_error", code = ex.Code }
-                })}\n\n");
+                });
+                var err = enc.GetBytes($"data: {errJson}\n\n");
                 stream.Write(err, 0, err.Length);
                 var done = enc.GetBytes("data: [DONE]\n\n");
                 stream.Write(done, 0, done.Length);
